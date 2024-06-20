@@ -51,11 +51,20 @@ export class LayoutController {
       return;
     }
 
-    const currentNodeTop = annotation.getAnchorNode(commentId === this.pinnedComment).getBoundingClientRect().top;
+    const currentNode = annotation.getAnchorNode(
+      commentId === this.pinnedComment,
+    );
+    let currentNodeTop = currentNode.getBoundingClientRect().top;
+    // adjust currentNodeTop for scroll positions of all ancestor elements
+    let parent = currentNode.parentElement;
+    while (parent) {
+      currentNodeTop += parent.scrollTop;
+      parent = parent.parentElement;
+    }
 
     this.commentDesiredPositions.set(
       commentId,
-      currentNodeTop !== 0 ? currentNodeTop + document.documentElement.scrollTop + OFFSET : 0
+      currentNodeTop !== 0 ? currentNodeTop + OFFSET : 0,
     );
   }
 
@@ -102,32 +111,35 @@ export class LayoutController {
         height: getOrDefault(this.commentHeights, commentId, 0),
         comments: [commentId],
         containsPinnedComment:
-            this.pinnedComment !== null && commentId === this.pinnedComment,
+          this.pinnedComment !== null && commentId === this.pinnedComment,
         pinnedCommentPosition: 0,
-      })
+      }),
     );
 
     // Group blocks by tabs
     const blocksByTab: Map<string | null, Block[]> = new Map();
-    allBlocks.forEach(block => {
+    allBlocks.forEach((block) => {
       const blocks = blocksByTab.get(block.tab) || [];
       blocks.push(block);
       blocksByTab.set(block.tab, blocks);
     });
 
     // Get location of pinned comment
-    const pinnedCommentPosition = this.pinnedComment ?
-      this.commentDesiredPositions.get(this.pinnedComment) : undefined;
-    const pinnedCommentTab = this.pinnedComment ?
-      this.commentTabs.get(this.pinnedComment) : undefined;
+    const pinnedCommentPosition = this.pinnedComment
+      ? this.commentDesiredPositions.get(this.pinnedComment)
+      : undefined;
+    const pinnedCommentTab = this.pinnedComment
+      ? this.commentTabs.get(this.pinnedComment)
+      : undefined;
 
     // For each tab, resolve positions of all the comments
     Array.from(blocksByTab.entries()).forEach(([tab, blocks]) => {
-      const pinnedCommentOnThisTab = this.pinnedComment && pinnedCommentTab === tab;
+      const pinnedCommentOnThisTab =
+        this.pinnedComment && pinnedCommentTab === tab;
 
       // Sort blocks
       blocks.sort(
-        (block, comparisonBlock) => block.position - comparisonBlock.position
+        (block, comparisonBlock) => block.position - comparisonBlock.position,
       );
 
       // Resolve overlapping blocks
@@ -173,10 +185,10 @@ export class LayoutController {
                 previousBlock.containsPinnedComment
               ) {
                 previousBlock.position =
-                  pinnedCommentPosition -
-                  previousBlock.pinnedCommentPosition;
+                  pinnedCommentPosition - previousBlock.pinnedCommentPosition;
               }
 
+              // eslint-disable-next-line no-continue
               continue;
             }
           }
@@ -212,7 +224,10 @@ export class LayoutController {
   }
 
   getCommentVisible(tab: string | null, commentId: number): boolean {
-    return this.getCommentTabVisible(tab, commentId) && getOrDefault(this.commentDesiredPositions, commentId, 1) > 0;
+    return (
+      this.getCommentTabVisible(tab, commentId) &&
+      getOrDefault(this.commentDesiredPositions, commentId, 1) > 0
+    );
   }
 
   getCommentPosition(commentId: number) {

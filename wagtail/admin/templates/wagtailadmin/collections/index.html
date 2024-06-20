@@ -13,13 +13,12 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% minimum_collection_depth collections as min_depth %}
-                    {% for collection in collections %}
+                    {% for pk, display_name in collections.get_indented_choices %}
                         <tr>
                             <td class="title">
                                 <div class="title-wrapper">
-                                    <a href="{% url 'wagtailadmin_collections:edit' collection.id %}">
-                                        {% format_collection collection min_depth %}
+                                    <a href="{% url 'wagtailadmin_collections:edit' pk %}">
+                                        {{ display_name }}
                                     </a>
                                 </div>
                             </td>
@@ -29,7 +28,7 @@
             </table>
         {% else %}
             {% url 'wagtailadmin_collections:add' as add_collection_url %}
-            <p>{% blocktrans %}No collections have been created. Why not <a href="{{ add_collection_url }}">add one</a>?{% endblocktrans %}</p>
+            <p>{% blocktrans trimmed %}No collections have been created. Why not <a href="{{ add_collection_url }}">add one</a>?{% endblocktrans %}</p>
         {% endif %}
     </div>
 {% endblock %}

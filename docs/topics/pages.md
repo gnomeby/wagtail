@@ -1,18 +1,14 @@
 # Page models
 
-```eval_rst
-Each page type (a.k.a. content type) in Wagtail is represented by a Django model. All page models must inherit from the :class:`wagtail.core.models.Page` class.
-```
+Each page type (a.k.a. content type) in Wagtail is represented by a Django model. All page models must inherit from the {class}`wagtail.models.Page` class.
 
-As all page types are Django models, you can use any field type that Django provides. See [Model field reference](https://docs.djangoproject.com/en/3.1/ref/models/fields/) for a complete list of field types you can use. Wagtail also provides `wagtail.core.fields.RichTextField` which provides a WYSIWYG editor for editing rich-text content.
+As all page types are Django models, you can use any field type that Django provides. See [Model field reference](django:ref/models/fields) for a complete list of field types you can use. Wagtail also provides `wagtail.fields.RichTextField` which provides a WYSIWYG editor for editing rich-text content.
 
-```eval_rst
-.. note::
+```{note}
+If you're not yet familiar with Django models, have a quick look at the following links to get you started:
 
-    If you're not yet familiar with Django models, have a quick look at the following links to get you started:
-
-    * :ref:`Creating models <django:creating-models>`
-    * :doc:`Model syntax <django:topics/db/models>`
+* {ref}`Creating models <django:creating-models>`
+* {doc}`Model syntax <django:topics/db/models>`
 ```
 
 ## An example Wagtail page model
@@ -24,10 +20,9 @@ from django.db import models
 
 from modelcluster.fields import ParentalKey
 
-from wagtail.core.models import Page, Orderable
-from wagtail.core.fields import RichTextField
-from wagtail.admin.edit_handlers import FieldPanel, MultiFieldPanel, InlinePanel
-from wagtail.images.edit_handlers import ImageChooserPanel
+from wagtail.models import Page, Orderable
+from wagtail.fields import RichTextField
+from wagtail.admin.panels import FieldPanel, MultiFieldPanel, InlinePanel
 from wagtail.search import index
 
 
@@ -58,13 +53,13 @@ class BlogPage(Page):
 
     content_panels = Page.content_panels + [
         FieldPanel('date'),
-        FieldPanel('body', classname="full"),
-        InlinePanel('related_links', label="Related links"),
+        FieldPanel('body'),
+        InlinePanel('related_links', heading="Related links", label="Related link"),
     ]
 
     promote_panels = [
         MultiFieldPanel(Page.promote_panels, "Common page configuration"),
-        ImageChooserPanel('feed_image'),
+        FieldPanel('feed_image'),
     ]
 
 
@@ -85,15 +80,13 @@ class BlogPageRelatedLink(Orderable):
     ]
 ```
 
-```eval_rst
-.. note::
-
-    Ensure that none of your field names are the same as your class names. This will cause errors due to the way Django handles relations (`read more <https://github.com/wagtail/wagtail/issues/503>`_). In our examples we have avoided this by appending "Page" to each model name.
+```{note}
+Ensure that none of your field names are the same as your class names. This will cause errors due to the way Django handles relations ([read more](https://github.com/wagtail/wagtail/issues/503)). In our examples we have avoided this by appending "Page" to each model name.
 ```
 
 ## Writing page models
 
-Here we'll describe each section of the above example to help you create your own page models.
+Here, we'll describe each section of the above example to help you create your own page models.
 
 ### Database fields
 
@@ -128,59 +121,36 @@ There are a few attributes for defining how the page's fields will be arranged i
 -   `promote_panels` - For metadata, such as tags, thumbnail image and SEO title
 -   `settings_panels` - For settings, such as publish date
 
-Each of these attributes is set to a list of `EditHandler` objects, which defines which fields appear on which tabs and how they are structured on each tab.
+Each of these attributes is set to a list of `Panel` objects, which defines which fields appear on which tabs and how they are structured on each tab.
 
-Here's a summary of the `EditHandler` classes that Wagtail provides out of the box. See [Panel types](/reference/pages/panels) for full descriptions.
+Here's a summary of the `Panel` classes that Wagtail provides out of the box. See [Panel types](/reference/pages/panels) for full descriptions.
 
 **Basic**
 
-These allow editing of model fields. The `FieldPanel` class will choose the correct widget based on the type of the field, though `StreamField` fields need to use a specialised panel class.
+These allow editing of model fields. The `FieldPanel` class will choose the correct widget based on the type of the field, such as a rich text editor for `RichTextField`, or an image chooser for a `ForeignKey` to an image model. `FieldPanel` also provides a page chooser interface for `ForeignKey`s to page models, but for more fine-grained control over which page types can be chosen, `PageChooserPanel` provides additional configuration options.
 
-```eval_rst
--   :class:`~wagtail.admin.edit_handlers.FieldPanel`
--   :class:`~wagtail.admin.edit_handlers.StreamFieldPanel`
-```
+-   {class}`~wagtail.admin.panels.FieldPanel`
+-   {class}`~wagtail.admin.panels.PageChooserPanel`
 
 **Structural**
 
 These are used for structuring fields in the interface.
 
-```eval_rst
--   :class:`~wagtail.admin.edit_handlers.MultiFieldPanel`
--   :class:`~wagtail.admin.edit_handlers.InlinePanel`
--   :class:`~wagtail.admin.edit_handlers.FieldRowPanel`
-```
-
-**Chooser**
-
-`ForeignKey` fields to certain models can use one of the below `ChooserPanel` classes. These add a nice modal chooser interface, and the image/document choosers also allow uploading new files without leaving the page editor.
-
-```eval_rst
--   :class:`~wagtail.admin.edit_handlers.PageChooserPanel`
--   :class:`~wagtail.images.edit_handlers.ImageChooserPanel`
--   :class:`~wagtail.documents.edit_handlers.DocumentChooserPanel`
--   :class:`~wagtail.snippets.edit_handlers.SnippetChooserPanel`
-
-.. note::
-
-    In order to use one of these choosers, the model being linked to must either be a page, image, document or snippet.
-
-    Linking to any other model type is currently unsupported, you will need to use ``FieldPanel`` which will create a dropdown box.
-```
-
+-   {class}`~wagtail.admin.panels.MultiFieldPanel`
+-   {class}`~wagtail.admin.panels.InlinePanel`
+-   {class}`~wagtail.admin.panels.FieldRowPanel`
 
 #### Customising the page editor interface
 
 The page editor can be customised further. See [Customising the editing interface](/advanced_topics/customisation/page_editing_interface).
 
-```eval_rst
-.. _page_type_business_rules:
-```
+(page_type_business_rules)=
+
 ### Parent page / subpage type rules
 
-These two attributes allow you to control where page types may be used in your site. It allows you to define rules like "blog entries may only be created under a blog index".
+These two attributes allow you to control where page types may be used in your site. They allow you to define rules like "blog entries may only be created under a blog index".
 
-Both take a list of model classes or model names. Model names are of the format `app_label.ModelName`. If the `app_label` is omitted, the same app is assumed.
+Both parent and subpage types take a list of model classes or model names. Model names are of the format `app_label.ModelName`. If the `app_label` is omitted, the same app is assumed.
 
 -   `parent_page_types` limits which page types this type can be created under
 -   `subpage_types` limits which page types can be created under this type
@@ -189,12 +159,23 @@ By default, any page type can be created under any page type and it is not neces
 
 Setting `parent_page_types` to an empty list is a good way of preventing a particular page type from being created in the editor interface.
 
-```eval_rst
-.. _page_urls:
+(page_descriptions)=
+
+### Page descriptions
+
+With every Wagtail Page you are able to add a helpful description text, similar to a `help_text` model attribute. By adding `page_description` to your Page model you'll be adding a short description that can be seen when you create a new page, edit an existing page or when you're prompted to select a child page type.
+
+```python
+class LandingPage(Page):
+
+    page_description = "Use this page for converting users"
 ```
+
+(page_urls)=
+
 ### Page URLs
 
-The most common method of retrieving page URLs is by using the `{% pageurl %}` template tag. Since it's called from a template, `pageurl` automatically includes the optimizations mentioned below. For more information, see [pageurl](pageurl_tag).
+The most common method of retrieving page URLs is by using the [`{% pageurl %}`](pageurl_tag) or [`{% fullpageurl %}`](fullpageurl_tag) template tags. Since it's called from a template, these automatically includes the optimizations mentioned below.
 
 Page models also include several low-level methods for overriding or accessing page URLs.
 
@@ -208,7 +189,7 @@ When overriding `get_url_parts()`, you should accept `*args, **kwargs`:
 def get_url_parts(self, *args, **kwargs):
 ```
 
-and pass those through at the point where you are calling `get_url_parts` on `super` (if applicable), e.g.:
+and pass those through at the point where you are calling `get_url_parts` on `super` (if applicable), for example:
 
 ```python
 super().get_url_parts(*args, **kwargs)
@@ -217,26 +198,20 @@ super().get_url_parts(*args, **kwargs)
 While you could pass only the `request` keyword argument, passing all arguments as-is ensures compatibility with any
 future changes to these method signatures.
 
-```eval_rst
-For more information, please see :meth:`wagtail.core.models.Page.get_url_parts`.
-```
+For more information, please see {meth}`wagtail.models.Page.get_url_parts`.
 
 #### Obtaining URLs for page instances
 
-The `Page.get_url(request)` method can be called whenever a page URL is needed. It defaults to returning local URLs (not including the protocol or domain) if it determines that the page is on the current site (via the hostname in `request`); otherwise, a full URL including the protocol and domain is returned. Whenever possible, the optional `request` argument should be included to enable per-request caching of site-level URL information and facilitate the generation of local URLs.
+You can call the `Page.get_url(request)` method whenever you need a page URL. It defaults to returning local URLs (not including the protocol or domain) if it determines that the page is on the current site (via the hostname in `request`); otherwise, it would return a full URL including the protocol and domain. Whenever possible, you should include the optional `request` argument to enable per-request caching of site-level URL information and facilitate the generation of local URLs.
 
-A common use case for `get_url(request)` is in any custom template tag your project may include for generating navigation menus. When writing such a custom template tag, ensure that it includes `takes_context=True` and use `context.get('request')` to safely pass the
+A common use case for `get_url(request)` is in any custom template tag your project may include for generating navigation menus. When writing such a custom template tag, ensure that it includes `takes_context=True` and uses `context.get('request')` to safely pass the
 request or `None` if no request exists in the context.
 
-```eval_rst
-For more information, please see :meth:`wagtail.core.models.Page.get_url`.
-```
+For more information, please see {meth}`wagtail.models.Page.get_url`.
 
-In the event a full URL (including the protocol and domain) is needed, `Page.get_full_url(request)` can be used instead. Whenever possible, the optional `request` argument should be included to enable per-request caching of site-level URL information.
+To retrieve the full URL (including the protocol and domain), use `Page.get_full_url(request)`. Whenever possible, the optional `request` argument should be included to enable per-request caching of site-level URL information.
 
-```eval_rst
-For more information, please see :meth:`wagtail.core.models.Page.get_full_url`.
-```
+For more information, please see {meth}`wagtail.models.Page.get_full_url`.
 
 ## Template rendering
 
@@ -352,33 +327,34 @@ class BlogPage(Page):
         })
 ```
 
+(inline_models)=
+
 ## Inline models
 
-Wagtail can nest the content of other models within the page. This is useful for creating repeated fields, such as related links or items to display in a carousel. Inline model content is also versioned with the rest of the page content.
+Wagtail allows the nesting of other models within a page. This is useful for creating repeated fields, such as related links or items to display in a carousel. Inline model content is also versioned with the rest of the page.
 
 Each inline model requires the following:
 
-```eval_rst
--   It must inherit from :class:`wagtail.core.models.Orderable`
+-   It must inherit from {class}`wagtail.models.Orderable`
 -   It must have a `ParentalKey` to the parent model
 
-.. note:: django-modelcluster and ParentalKey
+````{note}
+The model inlining feature is provided by [django-modelcluster](https://github.com/wagtail/django-modelcluster) and the `ParentalKey` field type must be imported from there:
 
-    The model inlining feature is provided by `django-modelcluster <https://github.com/torchbox/django-modelcluster>`_ and the ``ParentalKey`` field type must be imported from there:
-
-    .. code-block:: python
-
-        from modelcluster.fields import ParentalKey
-
-    ``ParentalKey`` is a subclass of Django's ``ForeignKey``, and takes the same arguments.
+```python
+from modelcluster.fields import ParentalKey
 ```
+
+`ParentalKey` is a subclass of Django's `ForeignKey`, and takes the same arguments.
+
+````
 
 For example, the following inline model can be used to add related links (a list of name, url pairs) to the `BlogPage` model:
 
 ```python
 from django.db import models
 from modelcluster.fields import ParentalKey
-from wagtail.core.models import Orderable
+from wagtail.models import Orderable
 
 
 class BlogPageRelatedLink(Orderable):
@@ -392,9 +368,7 @@ class BlogPageRelatedLink(Orderable):
     ]
 ```
 
-```eval_rst
-To add this to the admin interface, use the :class:`~wagtail.admin.edit_handlers.InlinePanel` edit panel class:
-```
+To add this to the admin interface, use the `InlinePanel` edit panel class:
 
 ```python
 content_panels = [
@@ -405,14 +379,57 @@ content_panels = [
 ```
 
 The first argument must match the value of the `related_name` attribute of the `ParentalKey`.
+For a brief description of parameters taken by `InlinePanel`, see {ref}`inline_panels`.
+
+## Re-using inline models across multiple page types
+
+In the above example, related links are defined as a child object on the `BlogPage` page type. Often, the same kind of inline child object will appear on several page types, and in these cases, it's undesirable to repeat the entire model definition. This can be avoided by refactoring the common fields into an abstract model:
+
+```python
+from django.db import models
+from modelcluster.fields import ParentalKey
+from wagtail.models import Orderable
+
+# The abstract model for related links, complete with panels
+class RelatedLink(models.Model):
+    name = models.CharField(max_length=255)
+    url = models.URLField()
+
+    panels = [
+        FieldPanel('name'),
+        FieldPanel('url'),
+    ]
+
+    class Meta:
+        abstract = True
+
+# The real model which extends the abstract model with a ParentalKey relation back to the page model.
+# This can be repeated for each page type where the relation is to be added
+# (for example, NewsPageRelatedLink, PublicationPageRelatedLink and so on).
+class BlogPageRelatedLink(Orderable,RelatedLink):
+    page = ParentalKey(BlogPage, on_delete=models.CASCADE, related_name='related_links')
+```
+
+Alternatively, if RelatedLink is going to appear on a significant number of the page types defined in your project, it may be more appropriate to set up a single `RelatedLink` model pointing to the base `wagtailcore.Page` model:
+
+```python
+class RelatedLink(Orderable):
+    page = ParentalKey("wagtailcore.Page", on_delete=models.CASCADE, related_name='related_links')
+    name = models.CharField(max_length=255)
+    url = models.URLField()
+    panels = [
+        FieldPanel('name'),
+        FieldPanel('url'),
+    ]
+```
+
+This will then make `related_links` available as a relation across all page types, although it will still only be editable on page types that include the `InlinePanel` in their panel definitions - for other page types, the set of related links will remain empty.
 
 ## Working with pages
 
-Wagtail uses Django's [multi-table inheritance](https://docs.djangoproject.com/en/3.1/topics/db/models/#multi-table-inheritance) feature to allow multiple page models to be used in the same tree.
+Wagtail uses Django's [multi-table inheritance](https://docs.djangoproject.com/en/stable/topics/db/models/#multi-table-inheritance) feature to allow multiple page models to be used in the same tree.
 
-```eval_rst
-Each page is added to both Wagtail's builtin :class:`~wagtail.core.models.Page` model as well as its user-defined model (such as the `BlogPage` model created earlier).
-```
+Each page is added to both Wagtail's built-in {class}`~wagtail.models.Page` model as well as its user-defined model (such as the `BlogPage` model created earlier).
 
 Pages can exist in Python code in two forms, an instance of `Page` or an instance of the page model.
 
@@ -420,7 +437,7 @@ When working with multiple page types together, you will typically use instances
 
 ```python
 # Get all pages in the database
->>> from wagtail.core.models import Page
+>>> from wagtail.models import Page
 >>> Page.objects.all()
 [<Page: Homepage>, <Page: About us>, <Page: Blog>, <Page: A Blog post>, <Page: Another Blog post>]
 ```
@@ -450,7 +467,7 @@ You can convert a `Page` object to its more specific user-defined equivalent usi
 
 ### Friendly model names
 
-You can make your model names more friendly to users of Wagtail by using Django's internal `Meta` class with a `verbose_name`, e.g.:
+You can make your model names more friendly to users of Wagtail by using Django's internal `Meta` class with a `verbose_name`, for example:
 
 ```python
 class HomePage(Page):
@@ -464,7 +481,7 @@ When users are given a choice of pages to create, the list of page types is gene
 
 ### Page QuerySet ordering
 
-`Page`-derived models *cannot* be given a default ordering by using the standard Django approach of adding an `ordering` attribute to the internal `Meta` class.
+`Page`-derived models _cannot_ be given a default ordering by using the standard Django approach of adding an `ordering` attribute to the internal `Meta` class.
 
 ```python
 class NewsItemPage(Page):
@@ -481,16 +498,15 @@ This is because `Page` enforces ordering QuerySets by path. Instead, you must ap
 news_items = NewsItemPage.objects.live().order_by('-publication_date')
 ```
 
-```eval_rst
-.. _custom_page_managers:
-```
+(custom_page_managers)=
+
 ### Custom Page managers
 
-You can add a custom `Manager` to your `Page` class. Any custom Managers should inherit from `wagtail.core.models.PageManager`:
+You can add a custom `Manager` to your `Page` class. Any custom Managers should inherit from `wagtail.models.PageManager`:
 
 ```python
 from django.db import models
-from wagtail.core.models import Page, PageManager
+from wagtail.models import Page, PageManager
 
 class EventPageManager(PageManager):
     """ Custom manager for Event pages """
@@ -501,12 +517,12 @@ class EventPage(Page):
     objects = EventPageManager()
 ```
 
-Alternately, if you only need to add extra `QuerySet` methods, you can inherit from `wagtail.core.models.PageQuerySet` to build a custom `Manager`:
+Alternately, if you only need to add extra `QuerySet` methods, you can inherit from `wagtail.models.PageQuerySet` to build a custom `Manager`:
 
 ```python
 from django.db import models
 from django.utils import timezone
-from wagtail.core.models import Page, PageManager, PageQuerySet
+from wagtail.models import Page, PageManager, PageQuerySet
 
 class EventPageQuerySet(PageQuerySet):
     def future(self):

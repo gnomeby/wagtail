@@ -1,8 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
+import $ from 'jquery';
 import { StaticBlockDefinition } from './StaticBlock';
 
-import $ from 'jquery';
 window.$ = $;
 
 window.comments = {
@@ -14,14 +12,11 @@ describe('telepath: wagtail.blocks.StaticBlock', () => {
 
   beforeEach(() => {
     // Define a test block
-    const blockDef = new StaticBlockDefinition(
-      'test_field',
-      {
-        text: 'The admin text',
-        icon: 'icon',
-        label: 'The label',
-      }
-    );
+    const blockDef = new StaticBlockDefinition('test_field', {
+      text: 'The admin text',
+      icon: 'icon',
+      label: 'The label',
+    });
 
     // Render it
     document.body.innerHTML = '<div id="placeholder"></div>';
@@ -30,6 +25,10 @@ describe('telepath: wagtail.blocks.StaticBlock', () => {
 
   test('it renders correctly', () => {
     expect(document.body.innerHTML).toMatchSnapshot();
+  });
+
+  test('boundblock matches the snapshot', () => {
+    expect(boundBlock).toMatchSnapshot();
   });
 });
 
@@ -40,14 +39,11 @@ describe('telepath: wagtail.blocks.StaticBlock HTML escaping', () => {
     window.somethingBad = jest.fn();
 
     // Define a test block
-    const blockDef = new StaticBlockDefinition(
-      'test_field',
-      {
-        text: 'The admin text <script>somethingBad();</script>',
-        icon: 'icon',
-        label: 'The label',
-      }
-    );
+    const blockDef = new StaticBlockDefinition('test_field', {
+      text: 'The admin text <script>somethingBad();</script>',
+      icon: 'icon',
+      label: 'The label',
+    });
 
     // Render it
     document.body.innerHTML = '<div id="placeholder"></div>';
@@ -58,8 +54,12 @@ describe('telepath: wagtail.blocks.StaticBlock HTML escaping', () => {
     expect(document.body.innerHTML).toMatchSnapshot();
   });
 
-  test('javascript can\'t execute', () => {
+  test("javascript can't execute", () => {
     expect(window.somethingBad.mock.calls.length).toBe(0);
+  });
+
+  test('boundblock matches the snapshot', () => {
+    expect(boundBlock).toMatchSnapshot();
   });
 });
 
@@ -70,14 +70,11 @@ describe('telepath: wagtail.blocks.StaticBlock allows safe HTML', () => {
     window.somethingBad = jest.fn();
 
     // Define a test block
-    const blockDef = new StaticBlockDefinition(
-      'test_field',
-      {
-        html: 'The admin text <script>somethingBad();</script>',
-        icon: 'icon',
-        label: 'The label',
-      }
-    );
+    const blockDef = new StaticBlockDefinition('test_field', {
+      html: 'The admin text <script>somethingBad();</script>',
+      icon: 'icon',
+      label: 'The label',
+    });
 
     // Render it
     document.body.innerHTML = '<div id="placeholder"></div>';
@@ -90,5 +87,9 @@ describe('telepath: wagtail.blocks.StaticBlock allows safe HTML', () => {
 
   test('javascript can execute', () => {
     expect(window.somethingBad.mock.calls.length).toBe(1);
+  });
+
+  test('boundblock matches the snapshot', () => {
+    expect(boundBlock).toMatchSnapshot();
   });
 });

@@ -11,6 +11,7 @@ export interface MenuItemRenderContext {
 export interface MenuItemDefinition {
   name: string;
   label: string;
+  attrs: { [key: string]: any };
   iconName: string | null;
   classNames?: string;
   render(context: MenuItemRenderContext): React.ReactFragment;
@@ -18,9 +19,9 @@ export interface MenuItemDefinition {
 
 export interface MenuItemProps<T> {
   path: string;
+  slim: boolean;
   state: MenuState;
   item: T;
   dispatch(action: MenuAction): void;
   navigate(url: string): Promise<void>;
 }
-

@@ -1,29 +1,15 @@
-{% extends "wagtailadmin/base.html" %}
+{% extends "wagtailadmin/generic/base.html" %}
 {% load i18n wagtailadmin_tags %}
-
-{% block titletag %}{{ view.page_title }}{% endblock %}
-
-{% block extra_css %}
-    {{ block.super }}
-    {% include "wagtailadmin/pages/_editor_css.html" %}
-    {{ edit_handler.form.media.css }}
-
-    {{ view.media.css }}
-{% endblock %}
 
 {% block extra_js %}
     {{ block.super }}
     {% include "wagtailadmin/pages/_editor_js.html" %}
-    {{ edit_handler.form.media.js }}
-    {{ edit_handler.html_declarations }}
-
-    {{ view.media.js }}
-
-    {% include "wagtailadmin/workflows/includes/_edit_js.html" %}
 {% endblock %}
 
 {% block content %}
-    {% include "wagtailadmin/shared/header.html" with title=view.page_title subtitle=object.name icon=view.header_icon merged=1 %}
+    {% block header %}
+        {{ block.super }}
+    {% endblock %}
 
     <form action="{{ view.edit_url }}" enctype="multipart/form-data" method="POST" novalidate>
         {% csrf_token %}
@@ -31,20 +17,23 @@
         <ul class="fields nice-padding">
             {% for field in form %}
                 {% if not field.is_hidden %}
-                    {% include "wagtailadmin/shared/field_as_li.html" %}
+                    <li>
+                        {% include "wagtailadmin/shared/field.html" %}
+                    </li>
                 {% else %}
                     {{ field }}
                 {% endif %}
             {% endfor %}
-                <li>
-                    <div class="help-block help-info">
-                        {% for workflow in object.active_workflows %}
-                            {% if forloop.first %}<strong>{% trans "Used on the following active workflows" %}:</strong> {% endif %}
-                            <a href="{% url 'wagtailadmin_workflows:edit' workflow.pk %}">{{ workflow.name }}</a>{% if not forloop.last %}, {% endif %}
-                        {% empty %}
-                            {% trans "Not used" %}
-                        {% endfor %}
-                    </div>
+            <li>
+                <div class="help-block help-info">
+                    {% icon name='help' %}
+                    {% for workflow in object.active_workflows %}
+                        {% if forloop.first %}<strong>{% trans "Used on the following active workflows" %}:</strong> {% endif %}
+                        <a href="{% url 'wagtailadmin_workflows:edit' workflow.pk %}">{{ workflow.name }}</a>{% if not forloop.last %}, {% endif %}
+                    {% empty %}
+                        {% trans "Not used" %}
+                    {% endfor %}
+                </div>
             </li>
         </ul>
 
@@ -54,15 +43,31 @@
                     <li class="actions footer__container">
                         {% block form_actions %}
                             <div class="dropdown dropup dropdown-button match-width">
-                                <button type="submit" class="button action-save button-longrunning" data-clicked-text="{% trans 'Saving…' %}">
-                                    {% icon name="spinner" %}<em>{% trans 'Save' %}</em>
+                                <button
+                                    type="submit"
+                                    class="button action-save button-longrunning"
+                                    data-controller="w-progress"
+                                    data-action="w-progress#activate"
+                                    data-w-progress-active-value="{% trans 'Saving…' %}"
+                                >
+                                    {% icon name="spinner" %}
+                                    <em data-w-progress-target="label">{% trans 'Save' %}</em>
                                 </button>
 
                                 <div class="dropdown-toggle">{% icon name="arrow-up" %}</div>
                                 <ul>
                                     {% if can_enable %}
                                         <li>
-                                            <button type="submit" class="button no" data-enable-action>{{ view.enable_item_label }}</button>
+                                            <button
+                                                class="button no"
+                                                data-controller="w-action"
+                                                data-action="w-action#post"
+                                                data-w-action-continue-value="true"
+                                                data-w-action-url-value = '{{ view.get_enable_url }}'
+                                                type="submit"
+                                            >
+                                                {{ view.enable_item_label }}
+                                            </button>
                                         </li>
                                     {% elif can_disable %}
                                         <li>

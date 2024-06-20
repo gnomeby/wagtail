@@ -1,13 +1,22 @@
-import { FieldBlock, FieldBlockDefinition } from '../../../components/StreamField/blocks/FieldBlock';
-import { StaticBlock, StaticBlockDefinition } from '../../../components/StreamField/blocks/StaticBlock';
 import {
-  StructBlock, StructBlockDefinition, StructBlockValidationError
+  FieldBlock,
+  FieldBlockDefinition,
+} from '../../../components/StreamField/blocks/FieldBlock';
+import {
+  StaticBlock,
+  StaticBlockDefinition,
+} from '../../../components/StreamField/blocks/StaticBlock';
+import {
+  StructBlock,
+  StructBlockDefinition,
 } from '../../../components/StreamField/blocks/StructBlock';
 import {
-  ListBlock, ListBlockDefinition, ListBlockValidationError
+  ListBlock,
+  ListBlockDefinition,
 } from '../../../components/StreamField/blocks/ListBlock';
 import {
-  StreamBlock, StreamBlockDefinition, StreamBlockValidationError
+  StreamBlock,
+  StreamBlockDefinition,
 } from '../../../components/StreamField/blocks/StreamBlock';
 
 const wagtailStreamField = window.wagtailStreamField || {};
@@ -21,25 +30,22 @@ wagtailStreamField.blocks = {
 
   StructBlock,
   StructBlockDefinition,
-  StructBlockValidationError,
 
   ListBlock,
   ListBlockDefinition,
-  ListBlockValidationError,
 
   StreamBlock,
   StreamBlockDefinition,
-  StreamBlockValidationError,
 };
 
 function initBlockWidget(id) {
   /*
   Initialises the top-level element of a BlockWidget
-  (i.e. the form widget for a StreamField).
+  (the form widget for a StreamField).
   Receives the ID of a DOM element with the attributes:
     data-block: JSON-encoded block definition to be passed to telepath.unpack
       to obtain a Javascript representation of the block
-      (i.e. an instance of one of the Block classes below)
+      (an instance of one of the Block classes below)
     data-value: JSON-encoded value for this block
   */
 
@@ -49,20 +55,17 @@ function initBlockWidget(id) {
   const blockDefData = JSON.parse(body.dataset.block);
   const blockDef = window.telepath.unpack(blockDefData);
   const blockValue = JSON.parse(body.dataset.value);
-  const blockErrors = window.telepath.unpack(JSON.parse(body.dataset.errors));
+  const blockError = JSON.parse(body.dataset.error);
 
   // replace the 'body' element with the populated HTML structure for the block
-  blockDef.render(body, id, blockValue, blockErrors);
+  blockDef.render(body, id, blockValue, blockError);
 }
 window.initBlockWidget = initBlockWidget;
 
 window.telepath.register('wagtail.blocks.FieldBlock', FieldBlockDefinition);
 window.telepath.register('wagtail.blocks.StaticBlock', StaticBlockDefinition);
 window.telepath.register('wagtail.blocks.StructBlock', StructBlockDefinition);
-window.telepath.register('wagtail.blocks.StructBlockValidationError', StructBlockValidationError);
 window.telepath.register('wagtail.blocks.ListBlock', ListBlockDefinition);
-window.telepath.register('wagtail.blocks.ListBlockValidationError', ListBlockValidationError);
 window.telepath.register('wagtail.blocks.StreamBlock', StreamBlockDefinition);
-window.telepath.register('wagtail.blocks.StreamBlockValidationError', StreamBlockValidationError);
 
 window.wagtailStreamField = wagtailStreamField;

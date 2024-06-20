@@ -1,19 +1,19 @@
 const path = require('path');
+const CopyPlugin = require('copy-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 // Generates a path to the output bundle to be loaded in the browser.
-const getOutputPath = (app, filename) => {
-  let appLabel = `wagtail${app}`;
+const getOutputPath = (app, folder, filename) => {
+  const exceptions = {
+    'documents': 'wagtaildocs',
+    'contrib/table_block': 'table_block',
+    'contrib/typed_table_block': 'typed_table_block',
+    'contrib/styleguide': 'wagtailstyleguide',
+  };
 
-  // Exceptions
-  if (app === 'documents') {
-    appLabel = 'wagtaildocs';
-  } else if (app === 'contrib/table_block') {
-    appLabel = 'table_block';
-  } else if (app === 'contrib/typed_table_block') {
-    appLabel = 'typed_table_block';
-  }
+  const appLabel = exceptions[app] || `wagtail${app}`;
 
-  return path.join('wagtail', app, 'static', appLabel, 'js', filename);
+  return path.join('wagtail', app, 'static', appLabel, folder, filename);
 };
 
 // Mapping from package name to exposed global variable.
@@ -25,28 +25,29 @@ const exposedDependencies = {
   'draft-js': 'DraftJS',
 };
 
-module.exports = function exports() {
+module.exports = function exports(env, argv) {
+  const isProduction = argv.mode === 'production';
+
   const entrypoints = {
     'admin': [
-      'collapsible',
+      'chooser-modal',
+      'chooser-widget',
+      'chooser-widget-telepath',
       'comments',
       'core',
       'date-time-chooser',
       'draftail',
-      'expanding_formset',
+      'expanding-formset',
       'filtered-select',
-      'hallo-bootstrap',
-      'hallo-plugins/hallo-hr',
-      'hallo-plugins/hallo-requireparagraphs',
-      'hallo-plugins/hallo-wagtaillink',
-      'lock-unlock-action',
+      'icons',
       'modal-workflow',
       'page-chooser-modal',
       'page-chooser',
+      'page-chooser-telepath',
       'page-editor',
+      'preview-panel',
       'privacy-switch',
       'sidebar',
-      'sidebar-legacy',
       'task-chooser-modal',
       'task-chooser',
       'telepath/blocks',
@@ -55,52 +56,81 @@ module.exports = function exports() {
       'userbar',
       'wagtailadmin',
       'workflow-action',
-      'workflow-status',
-      'bulk-actions'
+      'bulk-actions',
     ],
     'images': [
       'image-chooser',
+      'image-chooser-modal',
       'image-chooser-telepath',
     ],
     'documents': [
       'document-chooser',
+      'document-chooser-modal',
       'document-chooser-telepath',
     ],
-    'snippets': [
-      'snippet-chooser',
-      'snippet-chooser-telepath',
-    ],
-    'contrib/table_block': [
-      'table',
-    ],
-    'contrib/typed_table_block': [
-      'typed_table_block',
-    ],
+    'snippets': ['snippet-chooser', 'snippet-chooser-telepath'],
+    'contrib/table_block': ['table'],
+    'contrib/typed_table_block': ['typed_table_block'],
   };
 
   const entry = {};
+  // eslint-disable-next-line no-restricted-syntax
   for (const [appName, moduleNames] of Object.entries(entrypoints)) {
-    moduleNames.forEach(moduleName => {
+    moduleNames.forEach((moduleName) => {
       entry[moduleName] = {
         import: [`./client/src/entrypoints/${appName}/${moduleName}.js`],
-        filename: getOutputPath(appName, moduleName) + '.js',
+        filename: getOutputPath(appName, 'js', moduleName) + '.js',
       };
-
-      // Add polyfills to all bundles except userbar
-      // polyfills.js imports from node_modules, which adds a dependency on vendor.js (produced by splitChunks)
-      // Because userbar is supposed to run on peoples frontends, we code it using portable JS so we don't need
-      // to pull in all the additional JS that the vendor bundle has (such as React).
-      if (moduleName !== 'userbar') {
-        entry[moduleName].import.push('./client/src/utils/polyfills.js');
-      }
     });
   }
 
+  const sassEntry = {};
+  sassEntry[getOutputPath('admin', 'css', 'core')] = path.resolve(
+    'wagtail',
+    'admin',
+    'static_src',
+    'wagtailadmin',
+    'scss',
+    'core.scss',
+  );
+  sassEntry[getOutputPath('admin', 'css', 'panels/draftail')] = path.resolve(
+    'wagtail',
+    'admin',
+    'static_src',
+    'wagtailadmin',
+    'scss',
+    'panels',
+    'draftail.scss',
+  );
+  sassEntry[getOutputPath('admin', 'css', 'panels/streamfield')] = path.resolve(
+    'wagtail',
+    'admin',
+    'static_src',
+    'wagtailadmin',
+    'scss',
+    'panels',
+    'streamfield.scss',
+  );
+  sassEntry[
+    getOutputPath('contrib/typed_table_block', 'css', 'typed_table_block')
+  ] = path.resolve(
+    'wagtail',
+    'contrib',
+    'typed_table_block',
+    'static_src',
+    'typed_table_block',
+    'scss',
+    'typed_table_block.scss',
+  );
+
   return {
-    entry: entry,
+    entry: {
+      ...entry,
+      ...sassEntry,
+    },
     output: {
       path: path.resolve('.'),
-      publicPath: '/static/js/'
+      publicPath: '/static/',
     },
     resolve: {
       extensions: ['.ts', '.tsx', '.js'],
@@ -116,6 +146,47 @@ module.exports = function exports() {
     externals: {
       jquery: 'jQuery',
     },
+
+    plugins: [
+      new MiniCssExtractPlugin({
+        filename: '[name].css',
+      }),
+      new CopyPlugin({
+        patterns: [
+          {
+            from: 'wagtail/admin/static_src/',
+            to: 'wagtail/admin/static/',
+            globOptions: { ignore: ['**/{app,scss}/**', '*.{css,txt}'] },
+          },
+          {
+            from: 'wagtail/documents/static_src/',
+            to: 'wagtail/documents/static/',
+            globOptions: { ignore: ['**/{app,scss}/**', '*.{css,txt}'] },
+          },
+          {
+            from: 'wagtail/embeds/static_src/',
+            to: 'wagtail/embeds/static/',
+            globOptions: { ignore: ['**/{app,scss}/**', '*.{css,txt}'] },
+          },
+          {
+            from: 'wagtail/images/static_src/',
+            to: 'wagtail/images/static/',
+            globOptions: { ignore: ['**/{app,scss}/**', '*.{css,txt}'] },
+          },
+          {
+            from: 'wagtail/contrib/search_promotions/static_src/',
+            to: 'wagtail/contrib/search_promotions/static/',
+            globOptions: { ignore: ['**/{app,scss}/**', '*.{css,txt}'] },
+          },
+          {
+            from: 'wagtail/users/static_src/',
+            to: 'wagtail/users/static/',
+            globOptions: { ignore: ['**/{app,scss}/**', '*.{css,txt}'] },
+          },
+        ],
+      }),
+    ],
+
     module: {
       rules: [
         {
@@ -123,32 +194,77 @@ module.exports = function exports() {
           loader: 'ts-loader',
           exclude: /node_modules/,
         },
-      ].concat(Object.keys(exposedDependencies).map((name) => {
-        const globalName = exposedDependencies[name];
-
-        // Create expose-loader configs for each Wagtail dependency.
-        return {
-          test: require.resolve(name),
+        {
+          // Legacy support for font icon loading, to be removed.
+          test: /\.(woff)$/i,
+          generator: {
+            emit: false,
+            filename: 'wagtailadmin/fonts/[name][ext]',
+          },
+        },
+        {
+          test: /\.(svg)$/i,
+          type: 'asset/inline',
+        },
+        {
+          test: /\.(scss|css)$/,
           use: [
+            MiniCssExtractPlugin.loader,
             {
-              loader: 'expose-loader',
+              loader: 'css-loader',
               options: {
-                exposes: {
-                  globalName,
-                  override: true
-                }
+                url: false,
+              },
+            },
+            {
+              loader: 'postcss-loader',
+              options: {
+                postcssOptions: {
+                  plugins: ['tailwindcss', 'autoprefixer', 'cssnano'],
+                },
+              },
+            },
+            {
+              loader: 'sass-loader',
+              options: {
+                sassOptions: {
+                  // Manually set Sass output so it’s identical in production and development. See:
+                  // https://github.com/tailwindlabs/tailwindcss/issues/11027
+                  // https://github.com/webpack-contrib/sass-loader/issues/1129
+                  outputStyle: 'expanded',
+                },
               },
             },
           ],
-        };
-      }))
+        },
+      ].concat(
+        Object.keys(exposedDependencies).map((name) => {
+          const globalName = exposedDependencies[name];
+
+          // Create expose-loader configs for each Wagtail dependency.
+          return {
+            test: require.resolve(name),
+            use: [
+              {
+                loader: 'expose-loader',
+                options: {
+                  exposes: {
+                    globalName,
+                    override: true,
+                  },
+                },
+              },
+            ],
+          };
+        }),
+      ),
     },
 
     optimization: {
       splitChunks: {
         cacheGroups: {
           vendor: {
-            name: getOutputPath('admin', 'vendor'),
+            name: getOutputPath('admin', 'js', 'vendor'),
             chunks: 'initial',
             minChunks: 2,
             reuseExistingChunk: true,
@@ -158,7 +274,7 @@ module.exports = function exports() {
     },
 
     // See https://webpack.js.org/configuration/devtool/.
-    devtool: 'source-map',
+    devtool: isProduction ? false : 'eval-cheap-module-source-map',
 
     // For development mode only.
     watchOptions: {
@@ -169,7 +285,7 @@ module.exports = function exports() {
     // Disable performance hints – currently there are much more valuable
     // optimizations for us to do outside of Webpack
     performance: {
-      hints: false
+      hints: false,
     },
 
     stats: {

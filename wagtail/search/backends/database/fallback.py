@@ -7,21 +7,19 @@ from django.db.models import Count
 from django.db.models.expressions import Value
 
 from wagtail.search.backends.base import (
-    BaseSearchBackend, BaseSearchQueryCompiler, BaseSearchResults, FilterFieldError)
+    BaseSearchBackend,
+    BaseSearchQueryCompiler,
+    BaseSearchResults,
+    FilterFieldError,
+)
 from wagtail.search.query import And, Boost, MatchAll, Not, Or, Phrase, PlainText
 from wagtail.search.utils import AND, OR
 
-
 # This file implements a database search backend using basic substring matching, and no
 # database-specific full-text search capabilities. It will be used in the following cases:
-# * The current default database is SQLite <3.19, or something other than PostgreSQL, MySQL or
-#   SQLite
+# * The current default database is SQLite <3.19, or SQLite built without fulltext
+#   extensions, or something other than PostgreSQL, MySQL or SQLite
 # * 'wagtail.search.backends.database.fallback' is specified directly as the search backend
-# * The deprecated 'wagtail.search.backends.db' backend is active; this is the default when no
-#   WAGTAILSEARCH_BACKENDS setting is present.
-#
-# RemovedInWagtail217Warning - the default will be switched to wagtail.search.backends.database
-# and wagtail.search.backends.db will be dropped.
 
 
 MATCH_ALL = "_ALL_"
@@ -155,7 +153,16 @@ class DatabaseSearchQueryCompiler(BaseSearchQueryCompiler):
         )
 
 
+class DatabaseAutocompleteQueryCompiler(DatabaseSearchQueryCompiler):
+    # The fallback backend doesn't handle word boundaries, so standard searches are
+    # essentially equivalent to autocomplete queries anyhow. However, to provide a
+    # consistent API with other backends, we provide both endpoints.
+    pass
+
+
 class DatabaseSearchResults(BaseSearchResults):
+    iterator_chunk_size = 2000
+
     def get_queryset(self):
         queryset = self.query_compiler.queryset
 
@@ -172,7 +179,7 @@ class DatabaseSearchResults(BaseSearchResults):
         else:
             queryset = queryset.filter(q)
 
-        return queryset.distinct()[self.start: self.stop]
+        return queryset.distinct()[self.start : self.stop]
 
     def _do_search(self):
         queryset = self.get_queryset()
@@ -182,7 +189,7 @@ class DatabaseSearchResults(BaseSearchResults):
                 **{self._score_field: Value(None, output_field=models.FloatField())}
             )
 
-        return queryset.iterator()
+        return queryset.iterator(self.iterator_chunk_size)
 
     def _do_count(self):
         return self.get_queryset().count()
@@ -216,6 +223,7 @@ class DatabaseSearchResults(BaseSearchResults):
 
 class DatabaseSearchBackend(BaseSearchBackend):
     query_compiler_class = DatabaseSearchQueryCompiler
+    autocomplete_query_compiler_class = DatabaseSearchQueryCompiler
     results_class = DatabaseSearchResults
 
     def reset_index(self):

@@ -1,19 +1,22 @@
 import django_filters
-
+from django import forms
 from django.utils.translation import gettext as _
 
 from wagtail.admin.filters import WagtailFilterSet
-from wagtail.admin.widgets import ButtonSelect
-from wagtail.core.models import Site
+from wagtail.contrib.redirects.models import Redirect
+from wagtail.models import Site
 
 
 class RedirectsReportFilterSet(WagtailFilterSet):
     is_permanent = django_filters.ChoiceFilter(
         label=_("Type"),
         method="filter_type",
-        choices=((True, _("Permanent")), (False, _("Temporary")),),
+        choices=(
+            (True, _("Permanent")),
+            (False, _("Temporary")),
+        ),
         empty_label=_("All"),
-        widget=ButtonSelect,
+        widget=forms.RadioSelect,
     )
 
     site = django_filters.ModelChoiceFilter(
@@ -24,3 +27,7 @@ class RedirectsReportFilterSet(WagtailFilterSet):
         if value and self.request and self.request.user:
             queryset = queryset.filter(is_permanent=value)
         return queryset
+
+    class Meta:
+        model = Redirect
+        exclude = []

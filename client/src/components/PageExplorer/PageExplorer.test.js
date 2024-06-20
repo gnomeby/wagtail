@@ -22,13 +22,23 @@ describe('PageExplorer', () => {
 
   it('renders', () => {
     expect(shallow(<PageExplorer store={store} />).dive()).toMatchSnapshot();
-    expect(shallow(<Provider store={store}><PageExplorer /></Provider>).dive()).toMatchSnapshot();
+    expect(
+      shallow(
+        <Provider store={store}>
+          <PageExplorer />
+        </Provider>,
+      ).dive(),
+    ).toMatchSnapshot();
   });
 
   it('visible', () => {
     store.dispatch(actions.openPageExplorer(1));
     expect(shallow(<PageExplorer store={store} />).dive()).toMatchSnapshot();
-    expect(shallow(<PageExplorer store={store} />).dive().dive()).toMatchSnapshot();
+    expect(
+      shallow(<PageExplorer store={store} />)
+        .dive()
+        .dive(),
+    ).toMatchSnapshot();
   });
 
   describe('actions', () => {
@@ -41,11 +51,6 @@ describe('PageExplorer', () => {
 
     it('gotoPage', () => {
       wrapper.dive().prop('gotoPage')();
-      expect(store.dispatch).toHaveBeenCalled();
-    });
-
-    it('onClose', () => {
-      wrapper.dive().prop('onClose')();
       expect(store.dispatch).toHaveBeenCalled();
     });
   });

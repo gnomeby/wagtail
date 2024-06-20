@@ -1,7 +1,12 @@
+/* eslint-disable no-restricted-syntax */
 /* global $ */
 
 import { escapeHtml as h } from '../../../utils/text';
-
+import { range } from '../../../utils/range';
+import {
+  addErrorMessages,
+  removeErrorMessages,
+} from '../../../includes/streamFieldErrors';
 
 export class TypedTableBlock {
   constructor(blockDef, placeholder, prefix, initialState, initialError) {
@@ -34,15 +39,19 @@ export class TypedTableBlock {
     this.rowCountIncludingDeleted = 0;
     this.prefix = prefix;
     this.childBlockDefsByName = {};
-    this.blockDef.childBlockDefs.forEach(childBlockDef => {
+    this.blockDef.childBlockDefs.forEach((childBlockDef) => {
       this.childBlockDefsByName[childBlockDef.name] = childBlockDef;
     });
 
     const strings = this.blockDef.meta.strings;
     const dom = $(`
       <div class="typed-table-block ${h(this.blockDef.meta.classname || '')}">
-        <input type="hidden" name="${h(prefix)}-column-count" data-column-count value="0">
-        <input type="hidden" name="${h(prefix)}-row-count" data-row-count value="0">
+        <input type="hidden" name="${h(
+          prefix,
+        )}-column-count" data-column-count value="0">
+        <input type="hidden" name="${h(
+          prefix,
+        )}-row-count" data-row-count value="0">
         <div data-deleted-fields></div>
         <div class="typed-table-block__wrapper">
           <table>
@@ -61,10 +70,14 @@ export class TypedTableBlock {
             <tfoot>
               <tr>
                 <td class="control-cell">
-                  <button type="button"
+                  <button
+                    type="button"
                     class="button button-small button-secondary button--icon text-replace prepend-row"
-                    aria-label="${h(strings.ADD_ROW)}" title="${h(strings.ADD_ROW)}" data-add-row>
-                    <svg class="icon icon-plus icon" aria-hidden="true" focusable="false">
+                    data-add-row
+                    aria-label="${h(strings.ADD_ROW)}"
+                    title="${h(strings.ADD_ROW)}"
+                  >
+                    <svg class="icon icon-plus icon" aria-hidden="true">
                       <use href="#icon-plus"></use>
                     </svg>
                   </button></td>
@@ -75,6 +88,7 @@ export class TypedTableBlock {
       </div>
     `);
     $(placeholder).replaceWith(dom);
+    this.container = dom;
     this.thead = dom.find('table > thead').get(0);
     this.tbody = dom.find('table > tbody').get(0);
 
@@ -98,20 +112,19 @@ export class TypedTableBlock {
     if (this.blockDef.meta.helpText) {
       // help text is left unescaped as per Django conventions
       dom.append(`
-        <span>
+        <div class="c-sf-help">
           <div class="help">
-            ${this.blockDef.meta.helpIcon}
             ${this.blockDef.meta.helpText}
           </div>
-        </span>
+        </div>
       `);
     }
 
     this.addColumnCallback = null;
     this.addColumnMenu = $('<ul class="add-column-menu"></ul>');
-    this.blockDef.childBlockDefs.forEach(childBlockDef => {
+    this.blockDef.childBlockDefs.forEach((childBlockDef) => {
       const columnTypeButton = $(
-        '<button type="button" class="button button-small"></button>'
+        '<button type="button" class="button button-small"></button>',
       ).text(childBlockDef.meta.label);
       columnTypeButton.on('click', () => {
         if (this.addColumnCallback) this.addColumnCallback(childBlockDef);
@@ -120,11 +133,13 @@ export class TypedTableBlock {
       const li = $('<li></li>').append(columnTypeButton);
       this.addColumnMenu.append(li);
     });
-    this.addColumnMenuBaseElement = null;  // the element the add-column menu is attached to
+    this.addColumnMenuBaseElement = null; // the element the add-column menu is attached to
 
     this.appendColumnButton.on('click', () => {
       this.toggleAddColumnMenu(this.appendColumnButton, (chosenBlockDef) => {
-        this.insertColumn(this.columns.length, chosenBlockDef, { addInitialRow: true });
+        this.insertColumn(this.columns.length, chosenBlockDef, {
+          addInitialRow: true,
+        });
       });
     });
 
@@ -144,10 +159,12 @@ export class TypedTableBlock {
     this.addColumnMenu.show();
     this.addColumnCallback = callback;
   }
+
   hideAddColumnMenu() {
     this.addColumnMenu.hide();
     this.addColumnMenuBaseElement = null;
   }
+
   toggleAddColumnMenu(baseElement, callback) {
     if (this.addColumnMenuBaseElement === baseElement) {
       this.hideAddColumnMenu();
@@ -155,6 +172,7 @@ export class TypedTableBlock {
       this.showAddColumnMenu(baseElement, callback);
     }
   }
+
   clear() {
     // reset to initial empty state with no rows or columns
     this.columns = [];
@@ -169,8 +187,12 @@ export class TypedTableBlock {
 
     const headerRow = this.thead.children[0];
     // delete all header cells except for the control columns
-    headerRow.replaceChildren(headerRow.firstElementChild, headerRow.lastElementChild);
-    this.appendColumnButton.text(this.blockDef.meta.strings.ADD_COLUMN)
+    headerRow.replaceChildren(
+      headerRow.firstElementChild,
+      headerRow.lastElementChild,
+    );
+    this.appendColumnButton
+      .text(this.blockDef.meta.strings.ADD_COLUMN)
       .removeClass('button--icon text-replace white')
       .removeAttr('aria-label')
       .removeAttr('title');
@@ -179,18 +201,19 @@ export class TypedTableBlock {
     this.tbody.replaceChildren();
     this.addRowButton.hide();
   }
+
   insertColumn(index, blockDef, opts) {
     const column = {
       blockDef,
       position: index,
       id: this.columnCountIncludingDeleted,
     };
-    this.columnCountIncludingDeleted++;
+    this.columnCountIncludingDeleted += 1;
     // increase positions of columns after this one
-    for (let i = index; i < this.columns.length; i++) {
-      this.columns[i].position++;
+    range(index, this.columns.length).forEach((i) => {
+      this.columns[i].position += 1;
       this.columns[i].positionInput.value = this.columns[i].position;
-    }
+    });
     this.columns.splice(index, 0, column);
     this.columnCountInput.value = this.columnCountIncludingDeleted;
 
@@ -214,7 +237,8 @@ export class TypedTableBlock {
     newHeaderCell.appendChild(column.positionInput);
     column.deletedInput = document.createElement('input');
     column.deletedInput.type = 'hidden';
-    column.deletedInput.name = this.prefix + '-column-' + column.id + '-deleted';
+    column.deletedInput.name =
+      this.prefix + '-column-' + column.id + '-deleted';
     column.deletedInput.value = '';
     this.deletedFieldsContainer.appendChild(column.deletedInput);
 
@@ -222,17 +246,21 @@ export class TypedTableBlock {
       class="button button-secondary button-small button--icon text-replace prepend-column"
       aria-label="${h(this.blockDef.meta.strings.INSERT_COLUMN)}"
       title="${h(this.blockDef.meta.strings.INSERT_COLUMN)}">
-        <svg class="icon icon-plus icon" aria-hidden="true" focusable="false"><use href="#icon-plus"></use></svg>
+        <svg class="icon icon-plus icon" aria-hidden="true"><use href="#icon-plus"></use></svg>
       </button>`);
     $(newHeaderCell).append(prependColumnButton);
     prependColumnButton.on('click', () => {
       this.toggleAddColumnMenu(prependColumnButton, (chosenBlockDef) => {
-        this.insertColumn(column.position, chosenBlockDef, { addInitialRow: true });
+        this.insertColumn(column.position, chosenBlockDef, {
+          addInitialRow: true,
+        });
       });
     });
 
     column.headingInput = document.createElement('input');
-    column.headingInput.name = this.prefix + '-column-' + column.id + '-heading';
+    column.headingInput.type = 'text';
+    column.headingInput.name =
+      this.prefix + '-column-' + column.id + '-heading';
     column.headingInput.className = 'column-heading';
     column.headingInput.placeholder = this.blockDef.meta.strings.COLUMN_HEADING;
     newHeaderCell.appendChild(column.headingInput);
@@ -241,7 +269,7 @@ export class TypedTableBlock {
       class="button button-secondary button-small button--icon text-replace no delete-column"
       aria-label="${h(this.blockDef.meta.strings.DELETE_COLUMN)}"
       title="${h(this.blockDef.meta.strings.DELETE_COLUMN)}">
-        <svg class="icon icon-bin icon" aria-hidden="true" focusable="false"><use href="#icon-bin"></use></svg>
+        <svg class="icon icon-bin icon" aria-hidden="true"><use href="#icon-bin"></use></svg>
       </button>`);
     $(newHeaderCell).append(deleteColumnButton);
     deleteColumnButton.on('click', () => {
@@ -249,7 +277,8 @@ export class TypedTableBlock {
     });
 
     // add new cell to each body row
-    const initialCellState = this.blockDef.childBlockDefaultStates[blockDef.name];
+    const initialCellState =
+      this.blockDef.childBlockDefaultStates[blockDef.name];
     Array.from(this.tbody.children).forEach((tr, rowIndex) => {
       const row = this.rows[rowIndex];
       const cells = tr.children;
@@ -258,23 +287,25 @@ export class TypedTableBlock {
       // has an extra final cell to contain the 'delete row' button.
       // The +1 accounts for the 'control' column on the left side, holding the 'insert row' buttons.
       tr.insertBefore(newCellElement, cells[index + 1]);
-      const newCellBlock = this.initCell(newCellElement, column, row, initialCellState);
+      const newCellBlock = this.initCell(
+        newCellElement,
+        column,
+        row,
+        initialCellState,
+      );
       row.blocks.splice(index, 0, newCellBlock);
     });
     /* after first column is added, enable adding rows */
     this.addRowButton.show();
-    this.appendColumnButton.html(
-      '<svg class="icon icon-plus icon" aria-hidden="true" focusable="false"><use href="#icon-plus"></use></svg>'
-    )
-      .addClass(
-        'button--icon text-replace white'
+    this.appendColumnButton
+      .html(
+        '<svg class="icon icon-plus icon" aria-hidden="true"><use href="#icon-plus"></use></svg>',
       )
-      .attr(
-        'aria-label', this.blockDef.meta.strings.ADD_COLUMN
-      )
-      .attr(
-        'title', this.blockDef.meta.strings.ADD_COLUMN
-      );
+      .addClass('button--icon text-replace white')
+      .attr('aria-label', this.blockDef.meta.strings.ADD_COLUMN)
+      .addClass('button--icon text-replace white')
+      .attr('aria-label', this.blockDef.meta.strings.ADD_COLUMN)
+      .attr('title', this.blockDef.meta.strings.ADD_COLUMN);
 
     if (opts && opts.addInitialRow && this.tbody.children.length === 0) {
       /* add an initial row */
@@ -297,10 +328,10 @@ export class TypedTableBlock {
     this.columns.splice(index, 1);
 
     // reduce position values of remaining columns after this one
-    for (let i = index; i < this.columns.length; i++) {
-      this.columns[i].position--;
+    range(index, this.columns.length).forEach((i) => {
+      this.columns[i].position -= 1;
       this.columns[i].positionInput.value = this.columns[i].position;
-    }
+    });
 
     // if no columns remain, revert to initial empty state with no rows
     if (this.columns.length === 0) {
@@ -322,7 +353,7 @@ export class TypedTableBlock {
       this.tbody.appendChild(rowElement);
     }
     this.rows.splice(index, 0, row);
-    this.rowCountIncludingDeleted++;
+    this.rowCountIncludingDeleted += 1;
     this.rowCountInput.value = this.rowCountIncludingDeleted;
 
     // add a leading cell to contain the 'insert row' button
@@ -333,7 +364,7 @@ export class TypedTableBlock {
       class="button button-secondary button-small button--icon text-replace prepend-row"
       aria-label="${h(this.blockDef.meta.strings.INSERT_ROW)}"
       title="${h(this.blockDef.meta.strings.INSERT_ROW)}">
-        <svg class="icon icon-plus icon" aria-hidden="true" focusable="false"><use href="#icon-plus"></use></svg>
+        <svg class="icon icon-plus icon" aria-hidden="true"><use href="#icon-plus"></use></svg>
       </button>`);
     $(controlCellBefore).append(prependRowButton);
     prependRowButton.on('click', () => {
@@ -346,7 +377,8 @@ export class TypedTableBlock {
         initialState = initialStates[i];
       } else {
         // use block's default state
-        initialState = this.blockDef.childBlockDefaultStates[column.blockDef.name];
+        initialState =
+          this.blockDef.childBlockDefaultStates[column.blockDef.name];
       }
       const newCell = document.createElement('td');
       rowElement.appendChild(newCell);
@@ -368,7 +400,7 @@ export class TypedTableBlock {
       class="button button-secondary button-small button--icon text-replace no delete-row"
       aria-label="${h(this.blockDef.meta.strings.DELETE_ROW)}"
       title="${h(this.blockDef.meta.strings.DELETE_ROW)}">
-        <svg class="icon icon-bin icon" aria-hidden="true" focusable="false"><use href="#icon-bin"></use></svg>
+        <svg class="icon icon-bin icon" aria-hidden="true"><use href="#icon-bin"></use></svg>
       </button>`);
     $(controlCellAfter).append(deleteRowButton);
     deleteRowButton.on('click', () => {
@@ -382,10 +414,10 @@ export class TypedTableBlock {
     this.deletedFieldsContainer.appendChild(row.deletedInput);
 
     // increment positions of subsequent rows
-    for (let i = index + 1; i < this.rows.length; i++) {
-      this.rows[i].position++;
+    range(index + 1, this.rows.length).forEach((i) => {
+      this.rows[i].position += 1;
       this.rows[i].positionInput.value = this.rows[i].position;
-    }
+    });
 
     return row;
   }
@@ -398,10 +430,10 @@ export class TypedTableBlock {
     this.rows.splice(index, 1);
 
     // reduce position values of remaining rows after this one
-    for (let i = index; i < this.rows.length; i++) {
-      this.rows[i].position--;
+    range(index, this.rows.length).forEach((i) => {
+      this.rows[i].position -= 1;
       this.rows[i].positionInput.value = this.rows[i].position;
-    }
+    });
   }
 
   initCell(cell, column, row, initialState) {
@@ -425,15 +457,21 @@ export class TypedTableBlock {
     }
   }
 
-  setError(errorList) {
-    if (errorList.length !== 1) {
-      return;
+  setError(error) {
+    if (!error) return;
+
+    // Non block errors
+    const container = this.container[0];
+    removeErrorMessages(container);
+
+    if (error.messages) {
+      addErrorMessages(container, error.messages);
     }
-    const error = errorList[0];
-    if (error.cellErrors) {
-      for (const [rowIndex, rowErrors] of Object.entries(error.cellErrors)) {
+
+    if (error.blockErrors) {
+      for (const [rowIndex, rowErrors] of Object.entries(error.blockErrors)) {
         for (const [colIndex, cellError] of Object.entries(rowErrors)) {
-          this.rows[rowIndex].blocks[colIndex].setError([cellError]);
+          this.rows[rowIndex].blocks[colIndex].setError(cellError);
         }
       }
     }
@@ -441,26 +479,42 @@ export class TypedTableBlock {
 
   getState() {
     const state = {
-      columns: this.columns.map(column => (
-        { type: column.blockDef.name, heading: column.headingInput.value }
-      )),
-      rows: this.rows.map(row => (
-        { values: row.blocks.map(block => block.getState()) }
-      )),
+      columns: this.getColumnStates(),
+      rows: this.rows.map((row) => ({
+        values: row.blocks.map((block) => block.getState()),
+      })),
     };
     return state;
   }
 
+  getDuplicatedState() {
+    return {
+      columns: this.getColumnStates(),
+      rows: this.rows.map((row) => ({
+        values: row.blocks.map((block) =>
+          block.getDuplicatedState === undefined
+            ? block.getState()
+            : block.getDuplicatedState(),
+        ),
+      })),
+    };
+  }
+
   getValue() {
     const value = {
-      columns: this.columns.map(column => (
-        { type: column.blockDef.name, heading: column.headingInput.value }
-      )),
-      rows: this.rows.map(row => (
-        { values: row.blocks.map(block => block.getValue()) }
-      )),
+      columns: this.getColumnStates(),
+      rows: this.rows.map((row) => ({
+        values: row.blocks.map((block) => block.getValue()),
+      })),
     };
     return value;
+  }
+
+  getColumnStates() {
+    return this.columns.map((column) => ({
+      type: column.blockDef.name,
+      heading: column.headingInput.value,
+    }));
   }
 
   getTextLabel(opts) {
@@ -477,7 +531,7 @@ export class TypedTableBlock {
               // always use the first child, truncated as necessary
               result = childLabel;
             } else {
-              const newResult = (result + ', ' + childLabel);
+              const newResult = result + ', ' + childLabel;
               if (maxLength && newResult.length > maxLength - 1) {
                 // too long, so don't add this; return the current list with an ellipsis instead
                 if (!result.endsWith('…')) result += '…';
@@ -512,16 +566,16 @@ export class TypedTableBlockDefinition {
   }
 
   render(placeholder, prefix, initialState, initialError) {
-    return new TypedTableBlock(this, placeholder, prefix, initialState, initialError);
-  }
-}
-window.telepath.register('wagtail.contrib.typed_table_block.blocks.TypedTableBlock', TypedTableBlockDefinition);
-
-export class TypedTableBlockValidationError {
-  constructor(cellErrors) {
-    this.cellErrors = cellErrors;
+    return new TypedTableBlock(
+      this,
+      placeholder,
+      prefix,
+      initialState,
+      initialError,
+    );
   }
 }
 window.telepath.register(
-  'wagtail.contrib.typed_table_block.TypedTableBlockValidationError', TypedTableBlockValidationError
+  'wagtail.contrib.typed_table_block.blocks.TypedTableBlock',
+  TypedTableBlockDefinition,
 );

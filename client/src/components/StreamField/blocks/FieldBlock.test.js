@@ -1,8 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
+import $ from 'jquery';
 import { FieldBlockDefinition } from './FieldBlock';
 
-import $ from 'jquery';
 window.$ = $;
 
 window.comments = {
@@ -10,7 +8,14 @@ window.comments = {
 };
 
 // Define some callbacks in global scope that can be mocked in tests
-let constructor = (_widgetName, _name, _id, _initialState) => {};
+let constructor = (
+  _widgetName,
+  _name,
+  _id,
+  _initialState,
+  _parentCapabilities,
+  _options,
+) => {};
 let setState = (_widgetName, _state) => {};
 let getState = (_widgetName) => {};
 let getValue = (_widgetName) => {};
@@ -22,28 +27,40 @@ class DummyWidgetDefinition {
     this.throwErrorOnRender = throwErrorOnRender;
   }
 
-  render(placeholder, name, id, initialState) {
+  render(placeholder, name, id, initialState, parentCapabilities, options) {
     if (this.throwErrorOnRender) {
-      throw new Error();
+      throw new Error('Mock rendering error');
     }
 
     const widgetName = this.widgetName;
-    constructor(widgetName, { name, id, initialState });
+    constructor(widgetName, {
+      name,
+      id,
+      initialState,
+      parentCapabilities,
+      options,
+    });
 
-    $(placeholder).replaceWith(`<p name="${name}" id="${id}">${widgetName}</p>`);
+    $(placeholder).replaceWith(
+      `<p name="${name}" id="${id}">${widgetName}</p>`,
+    );
     return {
-      setState(state) { setState(widgetName, state); },
-      getState() { getState(widgetName); return `state: ${widgetName} - ${name}`; },
-      getValue() { getValue(widgetName); return `value: ${widgetName} - ${name}`; },
-      focus() { focus(widgetName); },
+      setState(state) {
+        setState(widgetName, state);
+      },
+      getState() {
+        getState(widgetName);
+        return `state: ${widgetName} - ${name}`;
+      },
+      getValue() {
+        getValue(widgetName);
+        return `value: ${widgetName} - ${name}`;
+      },
+      focus() {
+        focus(widgetName);
+      },
       idForLabel: id,
     };
-  }
-}
-
-class ValidationError {
-  constructor(messages) {
-    this.messages = messages;
   }
 }
 
@@ -71,9 +88,9 @@ describe('telepath: wagtail.blocks.FieldBlock', () => {
         label: 'Test Field',
         required: true,
         icon: 'placeholder',
-        classname: 'field char_field widget-text_input fieldname-test_charblock',
-        helpText: 'drink <em>more</em> water'
-      }
+        classname: 'w-field w-field--char_field w-field--text_input',
+        helpText: 'drink <em>more</em> water',
+      },
     );
 
     // Render it
@@ -81,7 +98,7 @@ describe('telepath: wagtail.blocks.FieldBlock', () => {
     boundBlock = blockDef.render(
       $('#placeholder'),
       'the-prefix',
-      'Test initial state'
+      'Test initial state',
     );
   });
 
@@ -96,6 +113,24 @@ describe('telepath: wagtail.blocks.FieldBlock', () => {
       name: 'the-prefix',
       id: 'the-prefix',
       initialState: 'Test initial state',
+      options: {
+        // Options should have been passed to the block definition
+        attributes: {
+          'aria-describedby': 'the-prefix-helptext',
+          'required': '',
+        },
+      },
+      parentCapabilities: new Map(),
+    });
+  });
+
+  test('getAttributes() returns aria-describedby and required attributes', () => {
+    const attributes = boundBlock.getAttributes();
+    expect(attributes).toEqual({
+      // Added because FieldBlockDefinition has a helpText in its meta options
+      'aria-describedby': 'the-prefix-helptext',
+      // Added because FieldBlockDefinition has required set in its meta options
+      'required': '',
     });
   });
 
@@ -125,10 +160,12 @@ describe('telepath: wagtail.blocks.FieldBlock', () => {
   });
 
   test('setError() renders errors', () => {
-    boundBlock.setError([
-      new ValidationError(['Field must not contain the letter E']),
-      new ValidationError(['Field must contain a story about kittens']),
-    ]);
+    boundBlock.setError({
+      messages: [
+        'Field must not contain the letter E',
+        'Field must contain a story about kittens',
+      ],
+    });
     expect(document.body.innerHTML).toMatchSnapshot();
   });
 });
@@ -157,13 +194,13 @@ describe('telepath: wagtail.blocks.FieldBlock with comments enabled', () => {
         label: 'Test Field',
         required: true,
         icon: 'placeholder',
-        classname: 'field char_field widget-text_input fieldname-test_charblock',
+        classname: 'w-field w-field--char_field w-field--text_input',
         helpText: 'drink <em>more</em> water',
         showAddCommentButton: true,
         strings: {
-          ADD_COMMENT: 'Add Comment'
-        }
-      }
+          ADD_COMMENT: 'Add Comment',
+        },
+      },
     );
 
     // Render it
@@ -171,7 +208,7 @@ describe('telepath: wagtail.blocks.FieldBlock with comments enabled', () => {
     boundBlock = blockDef.render(
       $('#placeholder'),
       'the-prefix',
-      'Test initial state'
+      'Test initial state',
     );
   });
 
@@ -184,6 +221,9 @@ describe('telepath: wagtail.blocks.FieldBlock catches widget render errors', () 
   let boundBlock;
 
   beforeEach(() => {
+    // mock console.error to ensure it does not bubble to the logs
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
     // Create mocks for callbacks
     constructor = jest.fn();
     setState = jest.fn();
@@ -199,21 +239,31 @@ describe('telepath: wagtail.blocks.FieldBlock catches widget render errors', () 
         label: 'Test Field',
         required: true,
         icon: 'placeholder',
-        classname: 'field char_field widget-text_input fieldname-test_charblock',
-        helpText: 'drink <em>more</em> water'
-      }
+        classname: 'w-field w-field--char_field w-field--text_input',
+        helpText: 'drink <em>more</em> water',
+      },
     );
 
     // Render it
     document.body.innerHTML = '<div id="placeholder"></div>';
+
     boundBlock = blockDef.render(
       $('#placeholder'),
       'the-prefix',
-      'Test initial state'
+      'Test initial state',
     );
   });
 
+  afterEach(() => {
+    /* eslint-disable no-console */
+    console.error.mockRestore();
+  });
+
   test('it renders correctly', () => {
+    expect(console.error).toHaveBeenCalledTimes(1);
+    expect(console.error).toHaveBeenCalledWith(
+      new Error('Mock rendering error'),
+    );
     expect(document.body.innerHTML).toMatchSnapshot();
   });
 });

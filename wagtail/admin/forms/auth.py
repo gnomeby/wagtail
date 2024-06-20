@@ -6,30 +6,59 @@ from django.utils.translation import gettext_lazy
 
 
 class LoginForm(AuthenticationForm):
-    username = forms.CharField(
-        max_length=254, widget=forms.TextInput())
+    username = forms.CharField(max_length=254, widget=forms.TextInput())
 
     password = forms.CharField(
-        widget=forms.PasswordInput(attrs={
-            'placeholder': gettext_lazy("Enter password"),
-        }))
+        widget=forms.PasswordInput(
+            attrs={
+                "placeholder": gettext_lazy("Enter password"),
+            }
+        ),
+        strip=False,
+    )
+
+    remember = forms.BooleanField(required=False)
+
+    error_messages = {
+        **AuthenticationForm.error_messages,
+        "invalid_login": gettext_lazy(
+            "Your %(username_field)s and password didn't match. Please try again."
+        ),
+    }
 
     def __init__(self, request=None, *args, **kwargs):
         super().__init__(request=request, *args, **kwargs)
-        self.fields['username'].widget.attrs['placeholder'] = (
-            gettext_lazy("Enter your %s") % self.username_field.verbose_name)
+        self.fields["username"].widget.attrs["placeholder"] = gettext_lazy(
+            "Enter your %(username_field_name)s"
+        ) % {"username_field_name": self.username_field.verbose_name}
+        self.fields["username"].widget.attrs["autofocus"] = ""
 
     @property
     def extra_fields(self):
-        for field_name, field in self.fields.items():
-            if field_name not in ['username', 'password']:
-                yield field_name, field
+        for field_name in self.fields.keys():
+            if field_name not in ["username", "password", "remember"]:
+                yield field_name, self[field_name]
+
+    def get_invalid_login_error(self):
+        return forms.ValidationError(
+            self.error_messages["invalid_login"],
+            code="invalid_login",
+            params={"username_field": self.username_field.verbose_name},
+        )
 
 
 class PasswordResetForm(DjangoPasswordResetForm):
     email = forms.EmailField(
         label=gettext_lazy("Enter your email address to reset your password"),
-        max_length=254, required=True)
+        max_length=254,
+        required=True,
+    )
+
+    @property
+    def extra_fields(self):
+        for field_name in self.fields.keys():
+            if field_name not in ["email"]:
+                yield field_name, self[field_name]
 
 
 class PasswordChangeForm(DjangoPasswordChangeForm):
@@ -39,13 +68,14 @@ class PasswordChangeForm(DjangoPasswordChangeForm):
     * the old-password field is not auto-focused
     * Fields are not marked as required
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         try:
-            del self.fields['old_password'].widget.attrs['autofocus']
+            del self.fields["old_password"].widget.attrs["autofocus"]
         except KeyError:
             pass
 
-        self.fields['old_password'].required = False
-        self.fields['new_password1'].required = False
-        self.fields['new_password2'].required = False
+        self.fields["old_password"].required = False
+        self.fields["new_password1"].required = False
+        self.fields["new_password2"].required = False

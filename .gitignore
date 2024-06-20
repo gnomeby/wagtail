@@ -2,6 +2,7 @@
 *.pyc
 .DS_Store
 /.coverage
+/.coverage.*
 /dist/
 /build/
 /MANIFEST
@@ -10,7 +11,7 @@
 /.tox/
 /.venv
 /venv
-/node_modules/
+node_modules
 npm-debug.log*
 *.idea/
 /*.egg/
@@ -24,7 +25,8 @@ npm-debug.log*
 *.ipr
 *.iws
 coverage/
-client/node_modules
 
 ### vscode
 .vscode
+
+*.db

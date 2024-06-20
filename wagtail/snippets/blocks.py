@@ -1,10 +1,16 @@
 from django.utils.functional import cached_property
 
-from wagtail.core.blocks import ChooserBlock
-from wagtail.core.utils import resolve_model_string
+from wagtail.blocks import ChooserBlock
+from wagtail.coreutils import resolve_model_string
 
 
 class SnippetChooserBlock(ChooserBlock):
+    # Blocks are instantiated before models are loaded, so we can't set
+    # self.meta.icon in __init__. We need to override the default value
+    # some time after the model is loaded, so we mark it as a mutable
+    # attribute and set it using set_meta_options.
+    MUTABLE_META_ATTRIBUTES = ["icon"]
+
     def __init__(self, target_model, **kwargs):
         super().__init__(**kwargs)
         self._target_model = target_model
@@ -16,18 +22,10 @@ class SnippetChooserBlock(ChooserBlock):
     @cached_property
     def widget(self):
         from wagtail.snippets.widgets import AdminSnippetChooser
-        return AdminSnippetChooser(self.target_model)
 
-    def get_form_state(self, value):
-        value_data = self.widget.get_value_data(value)
-        if value_data is None:
-            return None
-        else:
-            return {
-                'id': value_data['id'],
-                'edit_link': value_data['edit_url'],
-                'string': value_data['string'],
-            }
+        # Override the default icon with the icon for the target model
+        self.set_meta_options({"icon": self.target_model.snippet_viewset.icon})
+        return AdminSnippetChooser(self.target_model, icon=self.meta.icon)
 
     class Meta:
         icon = "snippet"

@@ -8,7 +8,6 @@
 
     {{ form.media.js }}
 
-    {% url 'wagtailadmin_tag_autocomplete' as autocomplete_url %}
     <script>
         $(function() {
             $('#id_file').on(
@@ -21,7 +20,7 @@
 
                     // file widget value example: `C:\fakepath\image.jpg` - convert to just the filename part
                     var filename = $(this).val().split('\\').slice(-1)[0];
-                    var data = { title: filename.replace(/\.[^\.]+$/, '') };
+                    var data = { title: filename.replace(/\.[^.]+$/, '') };
                     var maxTitleLength = parseInt($titleField.attr('maxLength') || '0', 10) || null;
 
                     // allow an event handler to customise data or call event.preventDefault to stop any title pre-filling
@@ -36,9 +35,6 @@
                     $titleField.val(data.title);
                 }
             );
-            $('#id_tags').tagit({
-                autocomplete: {source: "{{ autocomplete_url|addslashes }}"}
-            });
         });
     </script>
 {% endblock %}
@@ -62,7 +58,9 @@
                     {% if field.is_hidden %}
                         {{ field }}
                     {% else %}
-                        {% include "wagtailadmin/shared/field_as_li.html" with field=field %}
+                        <li>
+                            {% include "wagtailadmin/shared/field.html" with field=field %}
+                        </li>
                     {% endif %}
                 {% endfor %}
                 <li><input type="submit" value="{% trans 'Save' %}" class="button" /></li>

@@ -1,19 +1,21 @@
-/* eslint-disable react/prop-types */
-
 import * as React from 'react';
 
-import Button from '../../Button/Button';
+import { Provider } from 'react-redux';
+import Tippy from '@tippyjs/react';
 import Icon from '../../Icon/Icon';
 import { MenuItemProps } from './MenuItem';
 import { LinkMenuItemDefinition } from './LinkMenuItem';
-import { Provider } from 'react-redux';
 import PageExplorer, { initPageExplorerStore } from '../../PageExplorer';
-import { openPageExplorer, closePageExplorer } from '../../PageExplorer/actions';
+import {
+  openPageExplorer,
+  closePageExplorer,
+} from '../../PageExplorer/actions';
 import { SidebarPanel } from '../SidebarPanel';
 import { SIDEBAR_TRANSITION_DURATION } from '../Sidebar';
 
-export const PageExplorerMenuItem: React.FunctionComponent<MenuItemProps<PageExplorerMenuItemDefinition>> = (
-  { path, item, state, dispatch, navigate }) => {
+export const PageExplorerMenuItem: React.FunctionComponent<
+  MenuItemProps<PageExplorerMenuItemDefinition>
+> = ({ path, slim, item, state, dispatch, navigate }) => {
   const isOpen = state.navigationPath.startsWith(path);
   const isActive = isOpen || state.activePath.startsWith(path);
   const depth = path.split('.').length;
@@ -25,6 +27,17 @@ export const PageExplorerMenuItem: React.FunctionComponent<MenuItemProps<PageExp
     store.current = initPageExplorerStore();
   }
 
+  const onCloseExplorer = () => {
+    // When a submenu is closed, we have to wait for the close animation
+    // to finish before making it invisible
+    setTimeout(() => {
+      setIsVisible(false);
+      if (store.current) {
+        store.current.dispatch(closePageExplorer());
+      }
+    }, SIDEBAR_TRANSITION_DURATION);
+  };
+
   React.useEffect(() => {
     if (isOpen) {
       // isOpen is set at the moment the user clicks the menu item
@@ -34,20 +47,11 @@ export const PageExplorerMenuItem: React.FunctionComponent<MenuItemProps<PageExp
         store.current.dispatch(openPageExplorer(item.startPageId));
       }
     } else if (!isOpen && isVisible) {
-      // When a submenu is closed, we have to wait for the close animation
-      // to finish before making it invisible
-      setTimeout(() => {
-        setIsVisible(false);
-        if (store.current) {
-          store.current.dispatch(closePageExplorer());
-        }
-      }, SIDEBAR_TRANSITION_DURATION);
+      onCloseExplorer();
     }
   }, [isOpen]);
 
-  const onClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-
+  const onClick = () => {
     // Open/close explorer
     if (isOpen) {
       dispatch({
@@ -62,31 +66,46 @@ export const PageExplorerMenuItem: React.FunctionComponent<MenuItemProps<PageExp
     }
   };
 
-  const className = (
-    'sidebar-menu-item'
-    + (isActive ? ' sidebar-menu-item--active' : '')
-    + (isInSubMenu ? ' sidebar-menu-item--in-sub-menu' : '')
-  );
+  const className =
+    'sidebar-menu-item sidebar-page-explorer-item' +
+    (isActive ? ' sidebar-menu-item--active' : '') +
+    (isInSubMenu ? ' sidebar-menu-item--in-sub-menu' : '');
 
-  const sidebarTriggerIconClassName = (
-    'sidebar-sub-menu-trigger-icon'
-    + (isOpen ? ' sidebar-sub-menu-trigger-icon--open' : '')
-  );
+  const sidebarTriggerIconClassName =
+    'sidebar-sub-menu-trigger-icon' +
+    (isOpen ? ' sidebar-sub-menu-trigger-icon--open' : '');
 
   return (
     <li className={className}>
-      <Button dialogTrigger={true} onClick={onClick} className="sidebar-menu-item__link">
-        <Icon name="folder-open-inverse" className="icon--menuitem" />
-        <span className="menuitem-label">{item.label}</span>
-        <Icon className={sidebarTriggerIconClassName} name="arrow-right" />
-      </Button>
+      <Tippy disabled={isOpen || !slim} content={item.label} placement="right">
+        <button
+          onClick={onClick}
+          className="sidebar-menu-item__link"
+          aria-haspopup="dialog"
+          aria-expanded={isOpen ? 'true' : 'false'}
+          type="button"
+        >
+          <Icon name="folder-open-inverse" className="icon--menuitem" />
+          <span className="menuitem-label">{item.label}</span>
+          <Icon className={sidebarTriggerIconClassName} name="arrow-right" />
+        </button>
+      </Tippy>
       <div>
-        <SidebarPanel isVisible={isVisible} isOpen={isOpen} depth={depth} widthPx={485}>
-          {store.current &&
+        <SidebarPanel
+          isVisible={isVisible}
+          isOpen={isOpen}
+          depth={depth}
+          widthPx={485}
+        >
+          {store.current && (
             <Provider store={store.current}>
-              <PageExplorer isVisible={isVisible} navigate={navigate} />
+              <PageExplorer
+                isVisible={isVisible}
+                navigate={navigate}
+                onClose={onCloseExplorer}
+              />
             </Provider>
-          }
+          )}
         </SidebarPanel>
       </div>
     </li>
@@ -96,17 +115,28 @@ export const PageExplorerMenuItem: React.FunctionComponent<MenuItemProps<PageExp
 export class PageExplorerMenuItemDefinition extends LinkMenuItemDefinition {
   startPageId: number;
 
-  constructor({ name, label, url, icon_name: iconName = null, classnames = undefined }, startPageId: number) {
-    super({ name, label, url, icon_name: iconName, classnames });
+  constructor(
+    {
+      name,
+      label,
+      url,
+      attrs,
+      icon_name: iconName = null,
+      classname = undefined,
+    },
+    startPageId: number,
+  ) {
+    super({ name, label, url, attrs, icon_name: iconName, classname });
     this.startPageId = startPageId;
   }
 
-  render({ path, state, dispatch, navigate }) {
+  render({ path, slim, state, dispatch, navigate }) {
     return (
       <PageExplorerMenuItem
         key={this.name}
         item={this}
         path={path}
+        slim={slim}
         state={state}
         dispatch={dispatch}
         navigate={navigate}

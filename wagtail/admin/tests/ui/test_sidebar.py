@@ -5,228 +5,287 @@ from django.urls import reverse
 
 from wagtail.admin.search import SearchArea
 from wagtail.admin.ui.sidebar import (
-    CustomBrandingModule, LinkMenuItem, MainMenuModule, PageExplorerMenuItem, SearchModule,
-    SubMenuItem, WagtailBrandingModule)
-from wagtail.core.telepath import JSContext
-from wagtail.tests.utils import WagtailTestUtils
+    ActionMenuItem,
+    LinkMenuItem,
+    MainMenuModule,
+    PageExplorerMenuItem,
+    SearchModule,
+    SubMenuItem,
+)
+from wagtail.telepath import JSContext
+from wagtail.test.utils import WagtailTestUtils
+from wagtail.utils.deprecation import RemovedInWagtail70Warning
 
 
 class TestAdaptLinkMenuItem(TestCase):
     def test_adapt(self):
-        packed = JSContext().pack(LinkMenuItem('link', "Link", '/link/'))
+        packed = JSContext().pack(LinkMenuItem("link", "Link", "/link/"))
 
-        self.assertEqual(packed, {
-            '_type': 'wagtail.sidebar.LinkMenuItem',
-            '_args': [
-                {
-                    'classnames': '',
-                    'icon_name': '',
-                    'label': 'Link',
-                    'name': 'link',
-                    'url': '/link/'
-                }
-            ]
-        })
+        self.assertEqual(
+            packed,
+            {
+                "_type": "wagtail.sidebar.LinkMenuItem",
+                "_args": [
+                    {
+                        "classname": "",
+                        "icon_name": "",
+                        "label": "Link",
+                        "name": "link",
+                        "url": "/link/",
+                        "attrs": {},
+                    }
+                ],
+            },
+        )
 
-    def test_adapt_with_classnames_and_icon(self):
-        packed = JSContext().pack(LinkMenuItem('link', "Link", '/link/', icon_name='link-icon', classnames='some classes'))
+    def test_adapt_with_optional_parameters(self):
+        packed = JSContext().pack(
+            LinkMenuItem(
+                "link",
+                "Link",
+                "/link/",
+                icon_name="link-icon",
+                classname="some classes",
+                attrs={"data-is-custom": "true"},
+            )
+        )
 
-        self.assertEqual(packed, {
-            '_type': 'wagtail.sidebar.LinkMenuItem',
-            '_args': [
-                {
-                    'classnames': 'some classes',
-                    'icon_name': 'link-icon',
-                    'label': 'Link',
-                    'name': 'link',
-                    'url': '/link/'
-                }
-            ]
-        })
+        self.assertEqual(
+            packed,
+            {
+                "_type": "wagtail.sidebar.LinkMenuItem",
+                "_args": [
+                    {
+                        "classname": "some classes",
+                        "icon_name": "link-icon",
+                        "label": "Link",
+                        "name": "link",
+                        "url": "/link/",
+                        "attrs": {"data-is-custom": "true"},
+                    }
+                ],
+            },
+        )
+
+    def test_adapt_with_deprecated_classnames(self):
+
+        with self.assertWarnsRegex(
+            RemovedInWagtail70Warning,
+            "The `classnames` kwarg for sidebar LinkMenuItem is deprecated - use `classname` instead.",
+        ):
+            packed = JSContext().pack(
+                LinkMenuItem("link", "Link", "/link/", classnames="legacy-classes")
+            )
+
+        self.assertEqual(
+            packed,
+            {
+                "_type": "wagtail.sidebar.LinkMenuItem",
+                "_args": [
+                    {
+                        "classname": "legacy-classes",  # mapped to new name but raises warning
+                        "icon_name": "",
+                        "label": "Link",
+                        "name": "link",
+                        "url": "/link/",
+                        "attrs": {},
+                    }
+                ],
+            },
+        )
 
 
 class TestAdaptSubMenuItem(TestCase):
     def test_adapt(self):
         packed = JSContext().pack(
-            SubMenuItem('sub-menu', "Sub menu", [
-                LinkMenuItem('link', "Link", '/link/', icon_name='link-icon'),
-            ], footer_text='Footer text')
+            SubMenuItem(
+                "sub-menu",
+                "Sub menu",
+                [
+                    LinkMenuItem("link", "Link", "/link/", icon_name="link-icon"),
+                ],
+                footer_text="Footer text",
+            )
         )
 
-        self.assertEqual(packed, {
-            '_type': 'wagtail.sidebar.SubMenuItem',
-            '_args': [
-                {
-                    'name': 'sub-menu',
-                    'label': 'Sub menu',
-                    'icon_name': '',
-                    'classnames': '',
-                    'footer_text': 'Footer text'
-                },
-                [
+        self.assertEqual(
+            packed,
+            {
+                "_type": "wagtail.sidebar.SubMenuItem",
+                "_args": [
                     {
-                        '_type': 'wagtail.sidebar.LinkMenuItem',
-                        '_args': [
-                            {
-                                'name': 'link',
-                                'label': 'Link',
-                                'icon_name': 'link-icon',
-                                'classnames': '',
-                                'url': '/link/'
-                            }
-                        ]
-                    }
-                ]
-            ]
-        })
+                        "name": "sub-menu",
+                        "label": "Sub menu",
+                        "icon_name": "",
+                        "classname": "",
+                        "footer_text": "Footer text",
+                        "attrs": {},
+                    },
+                    [
+                        {
+                            "_type": "wagtail.sidebar.LinkMenuItem",
+                            "_args": [
+                                {
+                                    "name": "link",
+                                    "label": "Link",
+                                    "icon_name": "link-icon",
+                                    "classname": "",
+                                    "url": "/link/",
+                                    "attrs": {},
+                                }
+                            ],
+                        }
+                    ],
+                ],
+            },
+        )
 
     def test_adapt_without_footer_text(self):
         packed = JSContext().pack(
-            SubMenuItem('sub-menu', "Sub menu", [
-                LinkMenuItem('link', "Link", '/link/', icon_name='link-icon'),
-            ])
+            SubMenuItem(
+                "sub-menu",
+                "Sub menu",
+                [
+                    LinkMenuItem("link", "Link", "/link/", icon_name="link-icon"),
+                ],
+            )
         )
 
-        self.assertEqual(packed, {
-            '_type': 'wagtail.sidebar.SubMenuItem',
-            '_args': [
-                {
-                    'name': 'sub-menu',
-                    'label': 'Sub menu',
-                    'icon_name': '',
-                    'classnames': '',
-                    'footer_text': ''
-                },
-                [
+        self.assertEqual(
+            packed,
+            {
+                "_type": "wagtail.sidebar.SubMenuItem",
+                "_args": [
                     {
-                        '_type': 'wagtail.sidebar.LinkMenuItem',
-                        '_args': [
-                            {
-                                'name': 'link',
-                                'label': 'Link',
-                                'icon_name': 'link-icon',
-                                'classnames': '',
-                                'url': '/link/'
-                            }
-                        ]
-                    }
-                ]
-            ]
-        })
+                        "name": "sub-menu",
+                        "label": "Sub menu",
+                        "icon_name": "",
+                        "classname": "",
+                        "footer_text": "",
+                        "attrs": {},
+                    },
+                    [
+                        {
+                            "_type": "wagtail.sidebar.LinkMenuItem",
+                            "_args": [
+                                {
+                                    "name": "link",
+                                    "label": "Link",
+                                    "icon_name": "link-icon",
+                                    "classname": "",
+                                    "url": "/link/",
+                                    "attrs": {},
+                                }
+                            ],
+                        }
+                    ],
+                ],
+            },
+        )
 
 
 class TestAdaptPageExplorerMenuItem(TestCase):
     def test_adapt(self):
-        packed = JSContext().pack(PageExplorerMenuItem('pages', "Pages", '/pages/', 1))
+        packed = JSContext().pack(PageExplorerMenuItem("pages", "Pages", "/pages/", 1))
 
-        self.assertEqual(packed, {
-            '_type': 'wagtail.sidebar.PageExplorerMenuItem',
-            '_args': [
-                {
-                    'classnames': '',
-                    'icon_name': '',
-                    'label': 'Pages',
-                    'name': 'pages',
-                    'url': '/pages/'
-                },
-                1
-            ]
-        })
-
-
-class TestAdaptWagtailBrandingModule(TestCase):
-    def test_adapt(self):
-        packed = JSContext().pack(WagtailBrandingModule())
-
-        self.assertEqual(packed['_type'], 'wagtail.sidebar.WagtailBrandingModule')
-        self.assertEqual(len(packed['_args']), 2)
-        self.assertEqual(packed['_args'][0], reverse('wagtailadmin_home'))
-        self.assertEqual(packed['_args'][1].keys(), {
-            'desktopLogoBody',
-            'desktopLogoEyeClosed',
-            'desktopLogoEyeOpen',
-            'desktopLogoTail',
-            'mobileLogo'
-        })
-
-
-class TestAdaptCustomBrandingModule(TestCase):
-    def test_adapt(self):
-        packed = JSContext().pack(CustomBrandingModule('<h1>My custom branding</h1>'))
-
-        self.assertEqual(packed, {
-            '_type': 'wagtail.sidebar.CustomBrandingModule',
-            '_args': [
-                '<h1>My custom branding</h1>',
-                False
-            ]
-        })
-
-    def test_collapsible(self):
-        packed = JSContext().pack(CustomBrandingModule('<h1>My custom branding</h1>', collapsible=True))
-
-        self.assertEqual(packed, {
-            '_type': 'wagtail.sidebar.CustomBrandingModule',
-            '_args': [
-                '<h1>My custom branding</h1>',
-                True
-            ]
-        })
+        self.assertEqual(
+            packed,
+            {
+                "_type": "wagtail.sidebar.PageExplorerMenuItem",
+                "_args": [
+                    {
+                        "attrs": {},
+                        "classname": "",
+                        "icon_name": "",
+                        "label": "Pages",
+                        "name": "pages",
+                        "url": "/pages/",
+                    },
+                    1,
+                ],
+            },
+        )
 
 
 class TestAdaptSearchModule(TestCase):
     def test_adapt(self):
-        packed = JSContext().pack(SearchModule(SearchArea("Search", '/search/')))
+        packed = JSContext().pack(SearchModule(SearchArea("Search", "/search/")))
 
-        self.assertEqual(packed, {
-            '_type': 'wagtail.sidebar.SearchModule',
-            '_args': [
-                '/search/'
-            ]
-        })
+        self.assertEqual(
+            packed, {"_type": "wagtail.sidebar.SearchModule", "_args": ["/search/"]}
+        )
 
 
-class TestAdaptMainMenuModule(DjangoTestCase, WagtailTestUtils):
+class TestAdaptMainMenuModule(WagtailTestUtils, DjangoTestCase):
     def test_adapt(self):
         main_menu = [
-            LinkMenuItem('pages', "Pages", '/pages/'),
+            LinkMenuItem("pages", "Pages", "/pages/"),
         ]
         account_menu = [
-            LinkMenuItem('account', "Account", reverse('wagtailadmin_account'), icon_name='user'),
-            LinkMenuItem('logout', "Logout", reverse('wagtailadmin_logout'), icon_name='logout'),
+            LinkMenuItem(
+                "account", "Account", reverse("wagtailadmin_account"), icon_name="user"
+            ),
+            ActionMenuItem(
+                "logout", "Logout", reverse("wagtailadmin_logout"), icon_name="logout"
+            ),
         ]
-        user = self.create_user(username='admin')
+        user = self.create_user(username="admin")
 
         packed = JSContext().pack(MainMenuModule(main_menu, account_menu, user))
 
-        self.assertEqual(packed, {
-            '_type': 'wagtail.sidebar.MainMenuModule',
-            '_args': [
-                [
+        self.assertEqual(
+            packed,
+            {
+                "_type": "wagtail.sidebar.MainMenuModule",
+                "_args": [
+                    [
+                        {
+                            "_type": "wagtail.sidebar.LinkMenuItem",
+                            "_args": [
+                                {
+                                    "name": "pages",
+                                    "label": "Pages",
+                                    "icon_name": "",
+                                    "classname": "",
+                                    "url": "/pages/",
+                                    "attrs": {},
+                                }
+                            ],
+                        }
+                    ],
+                    [
+                        {
+                            "_type": "wagtail.sidebar.LinkMenuItem",
+                            "_args": [
+                                {
+                                    "name": "account",
+                                    "label": "Account",
+                                    "icon_name": "user",
+                                    "classname": "",
+                                    "url": reverse("wagtailadmin_account"),
+                                    "attrs": {},
+                                }
+                            ],
+                        },
+                        {
+                            "_type": "wagtail.sidebar.ActionMenuItem",
+                            "_args": [
+                                {
+                                    "name": "logout",
+                                    "label": "Logout",
+                                    "icon_name": "logout",
+                                    "classname": "",
+                                    "action": reverse("wagtailadmin_logout"),
+                                    "method": "POST",
+                                    "attrs": {},
+                                }
+                            ],
+                        },
+                    ],
                     {
-                        '_type': 'wagtail.sidebar.LinkMenuItem',
-                        '_args': [
-                            {'name': 'pages', 'label': 'Pages', 'icon_name': '', 'classnames': '', 'url': '/pages/'}
-                        ]
-                    }
-                ],
-                [
-                    {
-                        '_type': 'wagtail.sidebar.LinkMenuItem',
-                        '_args': [
-                            {'name': 'account', 'label': 'Account', 'icon_name': 'user', 'classnames': '', 'url': reverse('wagtailadmin_account')}
-                        ]
+                        "name": user.first_name or user.get_username(),
+                        "avatarUrl": "//www.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?s=100&d=mm",
                     },
-                    {
-                        '_type': 'wagtail.sidebar.LinkMenuItem',
-                        '_args': [
-                            {'name': 'logout', 'label': 'Logout', 'icon_name': 'logout', 'classnames': '', 'url': reverse('wagtailadmin_logout')}
-                        ]
-                    }
                 ],
-                {
-                    'name': user.first_name or user.get_username(),
-                    'avatarUrl': '//www.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?s=100&d=mm'
-                }
-            ]
-        })
+            },
+        )

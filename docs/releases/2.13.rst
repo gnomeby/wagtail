@@ -2,6 +2,8 @@
 Wagtail 2.13 release notes
 ==========================
 
+*May 12, 2021*
+
 .. contents::
     :local:
     :depth: 1
@@ -13,7 +15,7 @@ What's new
 StreamField performance and functionality updates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The StreamField editing interface has been rebuilt on a client-side rendering model, powered by the `telepath <https://wagtail.github.io/telepath/>`_ library. This provides better performance, increased customisability and UI enhancements including the ability to duplicate blocks. For further background, see the blog post `Telepath - the next evolution of StreamField <https://wagtail.io/blog/telepath/>`_.
+The StreamField editing interface has been rebuilt on a client-side rendering model, powered by the `telepath <https://wagtail.github.io/telepath/>`_ library. This provides better performance, increased customisability and UI enhancements including the ability to duplicate blocks. For further background, see the blog post `Telepath - the next evolution of StreamField <https://wagtail.org/blog/telepath/>`_.
 
 This feature was developed by Matt Westcott and Karl Hobley and sponsored by `YouGov <https://yougov.co.uk/>`_, inspired by earlier work on `react-streamfield <https://github.com/wagtail/wagtail-react-streamfield>`_ completed by Bertrand Bordage through the `Wagtail's First Hatch <https://www.kickstarter.com/projects/noripyt/wagtails-first-hatch>`_ crowdfunder.
 
@@ -29,7 +31,7 @@ This module was contributed by Coen van der Kamp.
 Commenting
 ~~~~~~~~~~
 
-The page editor now supports :ref:`leaving comments on fields and StreamField blocks <commenting>`, by entering commenting mode (using the button in the top right of the editor). Inline comments are available in rich text fields using the Draftail editor.
+The page editor now supports leaving comments on fields and StreamField blocks, by entering commenting mode (using the button in the top right of the editor). Inline comments are available in rich text fields using the Draftail editor.
 
 This feature was developed by Jacob Topp-Mugglestone, Karl Hobley and Simon Evans and sponsored by `The Motley Fool <https://www.fool.com/>`_.
 
@@ -46,7 +48,7 @@ The redirects module now includes support for exporting the list of redirects to
 Sphinx Wagtail Theme
 ~~~~~~~~~~~~~~~~~~~~
 
-The `documentation <https://docs.wagtail.io/>`_ now uses our brand new `Sphinx Wagtail Theme <https://github.com/wagtail/sphinx_wagtail_theme>`_, with a search feature powered by `Algolia DocSearch <https://docsearch.algolia.com/>`_.
+The `documentation <https://docs.wagtail.org/>`_ now uses our brand new `Sphinx Wagtail Theme <https://github.com/wagtail/sphinx_wagtail_theme>`_, with a search feature powered by `Algolia DocSearch <https://docsearch.algolia.com/>`_.
 
 Feedback and feature requests for the theme may be reported to the `sphinx_wagtail_theme issue list <https://github.com/wagtail/sphinx_wagtail_theme/issues>`_, and to Wagtail’s issues for the search.
 
@@ -108,7 +110,7 @@ Wagtail 2.13 will be the last Wagtail release to support IE11. Users accessing t
 Updated handling of non-required StreamFields
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The rules for determining whether a StreamField is required (i.e. at least one block must be provided) have been simplified and made consistent with other field types. Non-required fields are now indicated by ``blank=True`` on the ``StreamField`` definition; the default is ``blank=False`` (the field is required). In previous versions, to make a field non-required, it was necessary to define :ref:`a top-level StreamBlock<streamfield_top_level_streamblock>` with ``required=False`` (which applied the validation rule) as well as setting ``blank=True`` (which removed the asterisk from the form field). You should review your use of StreamField to check that ``blank=True`` is used on the fields you wish to make optional.
+The rules for determining whether a StreamField is required (i.e. at least one block must be provided) have been simplified and made consistent with other field types. Non-required fields are now indicated by ``blank=True`` on the ``StreamField`` definition; the default is ``blank=False`` (the field is required). In previous versions, to make a field non-required, it was necessary to define a top-level ``StreamBlock`` with ``required=False`` (which applied the validation rule) as well as setting ``blank=True`` (which removed the asterisk from the form field). You should review your use of StreamField to check that ``blank=True`` is used on the fields you wish to make optional.
 
 
 New client-side implementation for custom StreamField blocks
